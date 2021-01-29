@@ -24,7 +24,7 @@ export class GetCMList extends ISteamDirectoryRequest {
   version = "v1";
 
   constructor(options: {
-    /** Client's Steam cell ID */
+    /** Client's Steam cell ID. Use 0 when not logged in. after login, use the provided cellid by steam. */
     cellid: number | string;
     /** Max number of servers to return */
     maxcount?: number;
