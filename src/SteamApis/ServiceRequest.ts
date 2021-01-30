@@ -26,7 +26,6 @@ export abstract class ServiceRequest {
   abstract version: string;
 
   /** a method that if defined, will be called with JSON-parsed result of the request. can be async. */
-  // deno-fmt-ignore
   postProcess?(response: unknown): unknown | Promise<unknown>;
 }
 
