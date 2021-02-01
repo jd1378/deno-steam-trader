@@ -13,4 +13,4 @@ export {
   Cookie,
   CookieJar,
   wrapFetch,
-} from "https://deno.land/x/another_cookiejar@v1.2.0/mod.ts";
+} from "https://deno.land/x/another_cookiejar@v2.0.0/mod.ts";
