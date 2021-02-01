@@ -1,4 +1,4 @@
-import { SteamID } from "../deps.ts";
+import { Cookie, CookieJar, randomBytes, SteamID, wrapFetch } from "../deps.ts";
 
 export type SteamCommunityOptions = {
   languageName: string;
@@ -6,12 +6,21 @@ export type SteamCommunityOptions = {
 
 export class SteamCommunity {
   languageName: string;
+  private cookieJar: CookieJar;
+  private fetch: (
+    input: string | Request | URL,
+    init?: RequestInit | undefined,
+  ) => Promise<Response>;
+
   constructor(options: SteamCommunityOptions) {
     this.languageName = options.languageName;
+    // TODO: save and load cookies
+    this.cookieJar = new CookieJar();
+    this.fetch = wrapFetch({ cookieJar: this.cookieJar });
   }
 
   async getWebApiKey(domain: string, secondCall = false): Promise<string> {
-    const body = await fetch(
+    const body = await this.fetch(
       "https://steamcommunity.com/dev/apikey?l=english",
       {
         redirect: "error",
@@ -43,7 +52,7 @@ export class SteamCommunity {
       reqBody.append("agreeToTerms", "agreed");
       reqBody.append("sessionid", this.getSessionID());
       reqBody.append("Submit", "Register");
-      await fetch(
+      await this.fetch(
         "https://steamcommunity.com/dev/registerkey?l=english",
         {
           method: "POST",
@@ -56,9 +65,33 @@ export class SteamCommunity {
     }
   }
 
+  private setCookie(cookie: Cookie) {
+    this.cookieJar.setCookie(cookie.clone(), "steamcommunity.com");
+    this.cookieJar.setCookie(cookie.clone(), "store.steampowered.com");
+    this.cookieJar.setCookie(cookie.clone(), "help.steampowered.com");
+  }
+
   getSessionID(): string {
-    // TODO
-    return "";
+    const sessionIdCookie = this.cookieJar.getCookie({
+      domain: "steamcommunity.com",
+      name: "sessionid",
+    });
+    if (sessionIdCookie?.value) {
+      return decodeURIComponent(sessionIdCookie.value);
+    } else {
+      const sessionID = this.generateSessionID();
+      this.setCookie(
+        new Cookie({
+          name: "sessionid",
+          value: sessionID,
+        }),
+      );
+      return sessionID;
+    }
+  }
+
+  generateSessionID() {
+    return randomBytes(12).toString("hex");
   }
 
   getUserInventoryContents(options: {
