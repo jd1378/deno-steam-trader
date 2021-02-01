@@ -114,4 +114,39 @@ export class SteamCommunity {
     const pos1 = 1;
     // TODO
   }
+
+  /**
+   * Returns login status and if family lock is active in an array of two.
+   */
+  async isLoggedIn(): Promise<[boolean, boolean | undefined]> {
+    let response: Response;
+
+    try {
+      response = await this.fetch("https://steamcommunity.com/my", {
+        redirect: "manual",
+      });
+    } catch (err) {
+      // 4xx don't throw error;
+      return [false, undefined];
+    }
+    await response.text(); // close request, bug in deno for now
+
+    if (response.type === "opaqueredirect" || response.status === 0) {
+      throw new Error("Login check broken due to deno api change");
+    }
+
+    if (response.status !== 302 && response.status !== 403) {
+      throw new Error("Http error " + response.status);
+    } else if (response.status === 403) {
+      // logged in and family lock active
+      return [true, true];
+    } else if (response.status === 302) {
+      const loggedIn = !!response.headers.get("location")?.match(
+        /steamcommunity\.com(\/(id|profiles)\/[^\/]+)\/?/,
+      );
+      return [loggedIn, false];
+    }
+
+    return [false, undefined];
+  }
 }
