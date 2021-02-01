@@ -35,6 +35,10 @@ export type LoginOptions = {
    * provide this next time you are logging in if you received "SteamGuard" error
    */
   emailauth?: string;
+  /**
+   *  only required if logging in with a Steam Guard authorization
+   */
+  steamguard?: string;
 };
 
 export type LoginAttemptData = {
@@ -173,7 +177,10 @@ export class SteamCommunity {
   /**
    * Only automatic totp generation with sharedSecret is supported. Make sure your system time is in sync with world.
    * 
-   * NOT IMPLEMENTED: Steam Guard authorization.
+   * after successful login these cookies should be set at least:
+   * `sessionid`,
+   * `steamLoginSecure`,
+   * `steamMachineAuth`
    * @param options 
    */
   async login(options?: LoginOptions) {
@@ -189,10 +196,17 @@ export class SteamCommunity {
         "username and password are not provided",
       );
     }
-    // needed cookies:
-    //  sessionid
-    //  steamLoginSecure
-    //  steamMachineAuth
+
+    if (options.steamguard) {
+      const parts = options.steamguard.split("||");
+      this.setCookie(
+        new Cookie({
+          name: "steamMachineAuth" + parts[0],
+          value: encodeURIComponent(parts[1]),
+        }),
+      );
+    }
+
     let rsa;
     let rsatimestamp;
 
@@ -263,6 +277,7 @@ export class SteamCommunity {
     loginRequestData.set("emailsteamid", ""); // ?
     loginRequestData.set("loginfriendlyname", options.loginFriendlyName || "");
     loginRequestData.set("remember_login", "true");
+    loginRequestData.set("donotcache", Date.now().toString());
 
     const resp: {
       success: boolean;
