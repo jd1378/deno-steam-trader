@@ -117,22 +117,17 @@ export class SteamCommunity {
 
   /**
    * Returns login status and if family lock is active in an array of two.
+   * throws error if call was unsuccesful
    */
   async isLoggedIn(): Promise<[boolean, boolean | undefined]> {
-    let response: Response;
+    const response = await this.fetch("https://steamcommunity.com/my", {
+      redirect: "manual",
+    });
 
-    try {
-      response = await this.fetch("https://steamcommunity.com/my", {
-        redirect: "manual",
-      });
-    } catch (err) {
-      // 4xx don't throw error;
-      return [false, undefined];
-    }
     await response.text(); // close request, bug in deno for now
 
     if (response.type === "opaqueredirect" || response.status === 0) {
-      throw new Error("Login check broken due to deno api change");
+      throw new Error("Login check broken due to deno api change"); // PANIC here.
     }
 
     if (response.status !== 302 && response.status !== 403) {
