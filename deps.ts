@@ -12,8 +12,10 @@ export { LFU } from "https://deno.land/x/velo@0.1.5/mod.ts";
 export {
   Cookie,
   CookieJar,
-  wrapFetch,
+  wrapFetch as wrapFetchWithCookieJar,
 } from "https://deno.land/x/another_cookiejar@v2.1.1/mod.ts";
+
+export { wrapFetch as wrapFetchWithHeaders } from "https://deno.land/x/fetch_goody@v1.0.0/mod.ts";
 
 export { RSA } from "https://deno.land/x/god_crypto@v1.4.9/src/rsa/mod.ts";
 export { RSAKey } from "https://deno.land/x/god_crypto@v1.4.9/src/rsa/rsa_key.ts";
