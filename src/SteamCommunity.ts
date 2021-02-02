@@ -2,8 +2,10 @@ import {
   Cookie,
   CookieJar,
   generateAuthCode,
+  getKeySize,
   randomBytes,
   RSA,
+  RSAKey,
   SteamID,
   wrapFetch,
 } from "../deps.ts";
@@ -39,6 +41,8 @@ export type LoginOptions = {
    *  only required if logging in with a Steam Guard authorization
    */
   steamguard?: string;
+  /** defaults to "true" */
+  rememberLogin?: "true" | "false";
 };
 
 export type LoginAttemptData = {
@@ -212,12 +216,14 @@ export class SteamCommunity {
 
     { // fetch RSA needed
       const headersForRsaKeyRequest = new Headers();
+      headersForRsaKeyRequest.set("accept-encoding", "gzip, deflate");
       headersForRsaKeyRequest.append(
         "Referer",
         "https://steamcommunity.com/login",
       );
       const rsaRequestBody = new FormData();
       rsaRequestBody.append("username", this.username);
+      rsaRequestBody.append("donotcache", Date.now().toString());
 
       const body = await this.fetch(
         "https://steamcommunity.com/login/getrsakey/",
@@ -233,10 +239,13 @@ export class SteamCommunity {
         throw new Error("Invalid RSA key received");
       }
 
-      const rsakey = RSA.importKey({
-        n: body.publickey_mod,
-        e: body.publickey_exp,
-        kty: "RSA",
+      const n = BigInt("0x" + body.publickey_mod);
+      const e = BigInt("0x" + body.publickey_exp);
+
+      const rsakey = new RSAKey({
+        n,
+        e,
+        length: getKeySize(n),
       });
 
       rsa = new RSA(rsakey);
@@ -244,40 +253,39 @@ export class SteamCommunity {
     }
 
     const loginRequestHeaders = new Headers();
-    loginRequestHeaders.set("accept-encoding", "gzip, deflate");
-
-    const loginRequestData = new FormData();
-    loginRequestData.set("username", this.username);
-    loginRequestData.set(
-      "password",
-      (await rsa.encrypt(this.password)).base64(),
+    // loginRequestHeaders.set("Accept-Encoding", "gzip, deflate");
+    loginRequestHeaders.set(
+      "Content-Type",
+      "application/x-www-form-urlencoded",
     );
-    loginRequestData.set("rsatimestamp", rsatimestamp);
-    // two factor
+    loginRequestHeaders.set("Accept", "application/json");
+
+    let twoFactorCode = "";
     if (options.twoFactorCode) {
-      loginRequestData.set(
-        "twofactorcode",
-        options.twoFactorCode,
-      );
+      twoFactorCode = options.twoFactorCode;
     } else if (this.sharedSecret) {
-      loginRequestData.set(
-        "twofactorcode",
-        generateAuthCode(this.sharedSecret),
-      );
+      twoFactorCode = generateAuthCode(this.sharedSecret);
     }
-    // captcha
-    if (options.captcha && this.lastLoginAttempt.captcha_gid) {
-      loginRequestData.set("captcha_text", options.captcha);
-      loginRequestData.set("captchagid", this.lastLoginAttempt.captcha_gid);
-    }
-    // email
-    if (options.emailauth) {
-      loginRequestData.set("emailauth", options.emailauth);
-    }
-    loginRequestData.set("emailsteamid", ""); // ?
-    loginRequestData.set("loginfriendlyname", options.loginFriendlyName || "");
-    loginRequestData.set("remember_login", "true");
-    loginRequestData.set("donotcache", Date.now().toString());
+
+    const data = new URLSearchParams({
+      username: this.username,
+      password: (await rsa.encrypt(this.password, { padding: "pkcs1" }))
+        .base64(),
+      // rsa
+      rsatimestamp,
+      // two factor (totp)
+      "twofactorcode": twoFactorCode,
+      // captcha
+      captcha_text: options.captcha || "",
+      captchagid: this.lastLoginAttempt.captcha_gid || "-1",
+      // email
+      emailauth: options.emailauth || "",
+      emailsteamid: "",
+      // other
+      loginfriendlyname: options.loginFriendlyName || "",
+      remember_login: options.rememberLogin || "true",
+      donotcache: Date.now().toString(),
+    });
 
     const resp: {
       success: boolean;
@@ -290,7 +298,7 @@ export class SteamCommunity {
     } = await this.fetch("https://steamcommunity.com/login/dologin/", {
       method: "POST",
       headers: loginRequestHeaders,
-      body: loginRequestData,
+      body: data,
       redirect: "manual",
     }).then((r) => r.json());
 
