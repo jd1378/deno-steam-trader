@@ -13,6 +13,8 @@ export {
   Cookie,
   CookieJar,
   wrapFetch,
-} from "https://deno.land/x/another_cookiejar@v2.0.1/mod.ts";
+} from "https://deno.land/x/another_cookiejar@v2.1.0/mod.ts";
 
 export { RSA } from "https://deno.land/x/god_crypto@v1.4.9/src/rsa/mod.ts";
+export { RSAKey } from "https://deno.land/x/god_crypto@v1.4.9/src/rsa/rsa_key.ts";
+export { get_key_size as getKeySize } from "https://deno.land/x/god_crypto@v1.4.9/src/helper.ts";
