@@ -1,4 +1,4 @@
-import { ServiceRequest } from "./SteamApis/ServiceRequest.ts";
+import { ServiceRequest } from "./requests/ServiceRequest.ts";
 
 export class SteamApi {
   apikey: string;

@@ -1,3 +1,5 @@
+// deno-lint-ignore-file camelcase
+
 import { Methods, ServiceRequest } from "./ServiceRequest.ts";
 
 abstract class ISteamEconomyRequest extends ServiceRequest {
@@ -35,7 +37,6 @@ export class GetAssetClassInfo extends ISteamEconomyRequest {
       appid: options.appid,
       language: options.language,
       description: options.description,
-      // deno-lint-ignore camelcase
       class_count: options.classList.length,
     };
     this.getParams = {

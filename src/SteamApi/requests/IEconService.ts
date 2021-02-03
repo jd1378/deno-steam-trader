@@ -1,3 +1,5 @@
+// deno-lint-ignore-file camelcase
+
 import { Methods, ServiceRequest } from "./ServiceRequest.ts";
 
 abstract class IEconServiceRequest extends ServiceRequest {
@@ -95,7 +97,6 @@ export class GetTradeOffersSummary extends IEconServiceRequest {
 
   constructor(
     /** The time the user last visited. If not passed, will use the time the user last visited the trade offer page. */
-    // deno-lint-ignore camelcase
     time_last_visit?: string,
   ) {
     super();
@@ -152,7 +153,6 @@ export class GetTradeHoldDurations extends IEconServiceRequest {
 
   constructor(
     /** User you are trading with */
-    // deno-lint-ignore camelcase
     steamid_target: string,
     options?: {
       /**	A special token that allows for trade offers from non-friends. */
