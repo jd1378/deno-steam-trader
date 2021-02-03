@@ -10,6 +10,7 @@ import {
   wrapFetchWithCookieJar,
   wrapFetchWithHeaders,
 } from "../deps.ts";
+import { EResult } from "./enums/EResult.ts";
 
 export type SteamCommunityOptions = {
   languageName: string;
@@ -54,13 +55,12 @@ export type LoginAttemptData = {
   steamguard?: string;
 };
 
+// DoctorMcKay/node-steamcommunity was at 3.42.0 at the time of writing this.
+
 export class SteamCommunity {
   languageName: string;
   private cookieJar: CookieJar;
-  private fetch: (
-    input: string | Request | URL,
-    init?: RequestInit | undefined,
-  ) => Promise<Response>;
+  private fetch;
   private lastLoginAttempt: LoginAttemptData;
   steamID: SteamID | undefined;
   private username: string | undefined;
@@ -376,5 +376,40 @@ export class SteamCommunity {
     }
 
     return [false, undefined];
+  }
+
+  async parentalUnlock(pin: string): Promise<boolean> {
+    const body = await this.fetch(
+      "https://steamcommunity.com/parental/ajaxunlock",
+      {
+        method: "POST",
+        form: {
+          pin,
+          sessionid: this.getSessionID(),
+        },
+      },
+    ).then((r) => r.json());
+
+    if (!body || !("success" in body)) {
+      throw new Error("Invalid response");
+    }
+
+    if (!body.success) {
+      if (body.eresult === undefined) {
+        throw new Error("Unknown Error");
+      }
+
+      switch (body.eresult) {
+        case EResult.AccessDenied:
+          throw new Error("Incorrect PIN");
+        case EResult.LimitExceeded:
+          throw new Error("Too many invalid PIN attempts");
+
+        default:
+          throw new Error(`Error: ${EResult[body.eresult]} (${body.eresult})`);
+      }
+    }
+
+    return true;
   }
 }
