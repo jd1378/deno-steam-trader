@@ -7,7 +7,8 @@ import {
   RSA,
   RSAKey,
   SteamID,
-  wrapFetch,
+  wrapFetchWithCookieJar,
+  wrapFetchWithHeaders,
 } from "../deps.ts";
 
 export type SteamCommunityOptions = {
@@ -78,7 +79,10 @@ export class SteamCommunity {
     this.lastLoginAttempt = {};
     // TODO: save and load cookies
     this.cookieJar = new CookieJar();
-    this.fetch = wrapFetch({ cookieJar: this.cookieJar });
+    const wrappedWithCookiesFetch = wrapFetchWithCookieJar({
+      cookieJar: this.cookieJar,
+    });
+    this.fetch = wrapFetchWithHeaders({ fetchFn: wrappedWithCookiesFetch });
   }
 
   async getWebApiKey(domain: string, secondCall = false): Promise<string> {
@@ -216,7 +220,6 @@ export class SteamCommunity {
 
     { // fetch RSA needed
       const headersForRsaKeyRequest = new Headers();
-      headersForRsaKeyRequest.set("accept-encoding", "gzip, deflate");
       headersForRsaKeyRequest.append(
         "Referer",
         "https://steamcommunity.com/login",
@@ -253,12 +256,6 @@ export class SteamCommunity {
     }
 
     const loginRequestHeaders = new Headers();
-    // loginRequestHeaders.set("Accept-Encoding", "gzip, deflate");
-    loginRequestHeaders.set(
-      "Content-Type",
-      "application/x-www-form-urlencoded",
-    );
-    loginRequestHeaders.set("Accept", "application/json");
 
     let twoFactorCode = "";
     if (options.twoFactorCode) {
