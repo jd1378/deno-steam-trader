@@ -105,3 +105,4 @@ dist
 
 cjar.json
 test*.ts
+*.bin
