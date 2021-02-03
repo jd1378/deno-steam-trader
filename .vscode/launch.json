@@ -8,8 +8,24 @@
       "name": "Launch Deno",
       "request": "launch",
       "type": "pwa-node",
-      "program": "mod.ts",
-      "cwd": "${workspaceFolder}",
+      "program": "${file}",
+      "cwd": "${workspaceFolder}/",
+      "runtimeExecutable": "deno",
+      "runtimeArgs": [
+        "run",
+        "--unstable",
+        "--inspect-brk",
+        "--allow-all",
+        "--allow-env"
+      ],
+      "outputCapture": "std",
+    },
+    {
+      "name": "Debug Deno",
+      "request": "launch",
+      "type": "pwa-node",
+      "program": "${file}",
+      "cwd": "${workspaceFolder}/",
       "runtimeExecutable": "deno",
       "runtimeArgs": [
         "run",
