@@ -1,4 +1,4 @@
-import { isObject } from "./inspect.ts";
+// deno-lint-ignore-file camelcase
 
 export type EconItemDescription = {
   type: string;
