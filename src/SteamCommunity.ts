@@ -463,4 +463,32 @@ export class SteamCommunity {
 
     return true;
   }
+
+  async getClientLogonToken() {
+    const resp = await this.fetch(
+      "https://steamcommunity.com/chat/clientjstoken",
+    );
+    if (resp.status !== 200) {
+      throw new Error("HTTP error: " + resp.status);
+    }
+    const body: {
+      logged_in: boolean;
+      steamid?: string;
+      account_name?: string;
+      token?: string;
+    } = await resp.json();
+    if (!body.logged_in) {
+      throw new Error("Not Logged In");
+    }
+
+    if (!body.steamid || !body.account_name || !body.token) {
+      throw new Error("Malformed response");
+    }
+
+    return {
+      "steamID": new SteamID(body.steamid),
+      "accountName": body.account_name,
+      "webLogonToken": body.token,
+    };
+  }
 }
