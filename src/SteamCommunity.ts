@@ -77,12 +77,40 @@ export class SteamCommunity {
     this.password = options.password;
     this.sharedSecret = options.sharedSecret;
     this.lastLoginAttempt = {};
-    // TODO: save and load cookies
+
+    // TODO: save and load cookies properly
     this.cookieJar = new CookieJar();
+    this.loadCookies();
     const wrappedWithCookiesFetch = wrapFetchWithCookieJar({
       cookieJar: this.cookieJar,
     });
     this.fetch = wrapFetchWithHeaders({ fetchFn: wrappedWithCookiesFetch });
+  }
+
+  saveCookies() {
+    Deno.writeTextFileSync("cjar.json", JSON.stringify(this.cookieJar));
+  }
+
+  loadCookies() {
+    try {
+      const cjardata = Deno.readTextFileSync("cjar.json");
+      if (cjardata) {
+        this.cookieJar = new CookieJar(JSON.parse(cjardata));
+        console.log("cookie jar loaded from disk.");
+        const steamID64Match = this.cookieJar.getCookie({
+          name: "steamLoginSecure",
+        })?.value?.match(
+          /=(\d+)/,
+        );
+        if (steamID64Match) {
+          this.steamID = new SteamID(steamID64Match[1]);
+        } else {
+          console.log("cannot get steamid from cookies");
+        }
+      }
+    } catch {
+      console.log("no saved cookies found.");
+    }
   }
 
   async getWebApiKey(domain: string, secondCall = false): Promise<string> {
@@ -322,7 +350,10 @@ export class SteamCommunity {
       throw new Error(resp.message || "Unknown error");
     } else {
       this.getSessionID();
-      const steamLoginCV = this.cookieJar.getCookie({ name: "steamLogin" })
+      this.saveCookies();
+      const steamLoginCV = this.cookieJar.getCookie({
+        name: "steamLoginSecure",
+      })
         ?.value;
       if (steamLoginCV) {
         this.steamID = new SteamID(
@@ -352,30 +383,50 @@ export class SteamCommunity {
    * [...., true] if you're currently in family view, [..., false] otherwise. 
    * If true, you'll need to call parentalUnlock with the correct PIN before you can do anything. 
    */
-  async isLoggedIn(): Promise<[boolean, boolean | undefined]> {
-    const response = await this.fetch("https://steamcommunity.com/my", {
-      redirect: "manual",
-    });
+  async getLoginStatus(): Promise<{
+    isLoggedIn: boolean;
+    isFamilyLockActive: boolean | undefined;
+    error?: Error;
+  }> {
+    try {
+      const response = await this.fetch("https://steamcommunity.com/my", {
+        redirect: "manual",
+      });
+      await response.text(); // close request, bug in deno for now
 
-    await response.text(); // close request, bug in deno for now
+      if (response.type === "opaqueredirect" || response.status === 0) {
+        throw new Error("Login check broken due to deno api change"); // PANIC here.
+      }
 
-    if (response.type === "opaqueredirect" || response.status === 0) {
-      throw new Error("Login check broken due to deno api change"); // PANIC here.
+      if (response.status !== 302 && response.status !== 403) {
+        throw new Error("Http error " + response.status);
+      } else if (response.status === 403) {
+        // logged in and family lock active
+        return {
+          isFamilyLockActive: true,
+          isLoggedIn: true,
+        };
+      } else if (response.status === 302) {
+        const loggedIn = !!response.headers.get("location")?.match(
+          /steamcommunity\.com(\/(id|profiles)\/[^\/]+)\/?/,
+        );
+        return {
+          isFamilyLockActive: false,
+          isLoggedIn: loggedIn,
+        };
+      }
+
+      return {
+        isFamilyLockActive: undefined,
+        isLoggedIn: false,
+      };
+    } catch (error) {
+      return {
+        isFamilyLockActive: undefined,
+        isLoggedIn: false,
+        error,
+      };
     }
-
-    if (response.status !== 302 && response.status !== 403) {
-      throw new Error("Http error " + response.status);
-    } else if (response.status === 403) {
-      // logged in and family lock active
-      return [true, true];
-    } else if (response.status === 302) {
-      const loggedIn = !!response.headers.get("location")?.match(
-        /steamcommunity\.com(\/(id|profiles)\/[^\/]+)\/?/,
-      );
-      return [loggedIn, false];
-    }
-
-    return [false, undefined];
   }
 
   async parentalUnlock(pin: string): Promise<boolean> {
