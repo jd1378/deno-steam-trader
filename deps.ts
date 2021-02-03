@@ -15,7 +15,7 @@ export {
   Cookie,
   CookieJar,
   wrapFetch as wrapFetchWithCookieJar,
-} from "https://deno.land/x/another_cookiejar@v2.1.1/mod.ts";
+} from "https://deno.land/x/another_cookiejar@v2.2.1/mod.ts";
 
 export { wrapFetch as wrapFetchWithHeaders } from "https://deno.land/x/fetch_goody@v1.1.0/mod.ts";
 
