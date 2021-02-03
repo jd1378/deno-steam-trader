@@ -129,6 +129,8 @@ export class SteamCommunity extends EventEmitter {
       }
     } catch {
       this.emit("debug", "no saved cookies found.");
+    } finally {
+      this.loadedCookies = true;
     }
   }
 
