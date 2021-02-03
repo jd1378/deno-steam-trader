@@ -1,6 +1,7 @@
 import {
   Cookie,
   CookieJar,
+  EventEmitter,
   generateAuthCode,
   getKeySize,
   randomBytes,
@@ -17,6 +18,7 @@ export type SteamCommunityOptions = {
   username?: string;
   password?: string;
   sharedSecret?: string;
+  debug?: boolean;
 };
 
 export type LoginOptions = {
@@ -57,7 +59,7 @@ export type LoginAttemptData = {
 
 // DoctorMcKay/node-steamcommunity was at 3.42.0 at the time of writing this.
 
-export class SteamCommunity {
+export class SteamCommunity extends EventEmitter {
   languageName: string;
   private cookieJar: CookieJar;
   private fetch;
@@ -66,50 +68,67 @@ export class SteamCommunity {
   private username: string | undefined;
   private password: string | undefined;
   private sharedSecret: string | undefined;
+  private loadedCookies: boolean;
+  private loggingIn: boolean;
 
   constructor(options: SteamCommunityOptions) {
     if (typeof options !== "object") {
       throw new Error("SteamCommunity options must be an object");
     }
+    super();
 
     this.languageName = options.languageName;
     this.username = options.username;
     this.password = options.password;
     this.sharedSecret = options.sharedSecret;
     this.lastLoginAttempt = {};
+    this.loadedCookies = false;
+    this.loggingIn = false;
 
-    // TODO: save and load cookies properly
     this.cookieJar = new CookieJar();
-    this.loadCookies();
     const wrappedWithCookiesFetch = wrapFetchWithCookieJar({
       cookieJar: this.cookieJar,
     });
     this.fetch = wrapFetchWithHeaders({ fetchFn: wrappedWithCookiesFetch });
   }
 
-  saveCookies() {
-    Deno.writeTextFileSync("cjar.json", JSON.stringify(this.cookieJar));
+  // TODO: save and load cookies properly
+  async saveCookies() {
+    try {
+      await Deno.writeTextFile("cjar.json", JSON.stringify(this.cookieJar));
+    } catch (err) {
+      this.emit("debug", "Failed to save cookies: " + err);
+    }
   }
 
-  loadCookies() {
+  async loadCookies() {
+    if (this.loadedCookies) return;
     try {
-      const cjardata = Deno.readTextFileSync("cjar.json");
+      const cjardata = await Deno.readTextFile("cjar.json");
       if (cjardata) {
-        this.cookieJar = new CookieJar(JSON.parse(cjardata));
-        console.log("cookie jar loaded from disk.");
-        const steamID64Match = this.cookieJar.getCookie({
+        this.cookieJar.replaceCookies(JSON.parse(cjardata));
+        this.emit("debug", "cookie jar loaded from disk.");
+        let steamID64 = this.cookieJar.getCookie({
           name: "steamLoginSecure",
-        })?.value?.match(
-          /=(\d+)/,
-        );
+        })?.value;
+        let steamID64Match;
+
+        if (steamID64) {
+          steamID64 = decodeURIComponent(steamID64);
+          steamID64Match = steamID64.match(
+            /(\d+)/,
+          );
+        }
+
         if (steamID64Match) {
           this.steamID = new SteamID(steamID64Match[1]);
+          this.emit("debug", "restored steamid from cookies");
         } else {
-          console.log("cannot get steamid from cookies");
+          this.emit("debug", "Cannot get steamid from cookies");
         }
       }
     } catch {
-      console.log("no saved cookies found.");
+      this.emit("debug", "no saved cookies found.");
     }
   }
 
@@ -220,157 +239,171 @@ export class SteamCommunity {
    * @param options 
    */
   async login(options?: LoginOptions) {
-    if (options) {
-      this.username = options.username || this.username;
-      this.password = options.password || this.password;
-      this.sharedSecret = options.sharedSecret || this.sharedSecret;
-    } else {
-      options = {};
-    }
-    if (!this.password || !this.username) {
-      throw new Error(
-        "username and password are not provided",
-      );
-    }
+    if (this.loggingIn) return;
+    this.loggingIn = true;
+    try {
+      // TODO correctly load cookies conditionally
+      await this.loadCookies();
 
-    if (options.steamguard) {
-      const parts = options.steamguard.split("||");
-      this.setCookie(
-        new Cookie({
-          name: "steamMachineAuth" + parts[0],
-          value: encodeURIComponent(parts[1]),
-        }),
-      );
-    }
+      const { isLoggedIn } = await this.getLoginStatus();
+      if (isLoggedIn) return;
+      // END OF TODO
 
-    let rsa;
-    let rsatimestamp;
-
-    { // fetch RSA needed
-      const headersForRsaKeyRequest = new Headers();
-      headersForRsaKeyRequest.append(
-        "Referer",
-        "https://steamcommunity.com/login",
-      );
-      const rsaRequestBody = new FormData();
-      rsaRequestBody.append("username", this.username);
-      rsaRequestBody.append("donotcache", Date.now().toString());
-
-      const body = await this.fetch(
-        "https://steamcommunity.com/login/getrsakey/",
-        {
-          method: "POST",
-          body: rsaRequestBody,
-          headers: headersForRsaKeyRequest,
-          redirect: "manual",
-        },
-      ).then((r) => r.json());
-
-      if (!body.publickey_mod || !body.publickey_exp) {
-        throw new Error("Invalid RSA key received");
+      if (options) {
+        this.username = options.username || this.username;
+        this.password = options.password || this.password;
+        this.sharedSecret = options.sharedSecret || this.sharedSecret;
+      } else {
+        options = {};
       }
 
-      const n = BigInt("0x" + body.publickey_mod);
-      const e = BigInt("0x" + body.publickey_exp);
+      if (!this.password || !this.username) {
+        throw new Error(
+          "username and password are not provided",
+        );
+      }
 
-      const rsakey = new RSAKey({
-        n,
-        e,
-        length: getKeySize(n),
+      if (options.steamguard) {
+        const parts = options.steamguard.split("||");
+        this.setCookie(
+          new Cookie({
+            name: "steamMachineAuth" + parts[0],
+            value: encodeURIComponent(parts[1]),
+          }),
+        );
+      }
+
+      let rsa;
+      let rsatimestamp;
+
+      { // fetch RSA needed
+        const headersForRsaKeyRequest = new Headers();
+        headersForRsaKeyRequest.append(
+          "Referer",
+          "https://steamcommunity.com/login",
+        );
+        const rsaRequestBody = new FormData();
+        rsaRequestBody.append("username", this.username);
+        rsaRequestBody.append("donotcache", Date.now().toString());
+
+        const body = await this.fetch(
+          "https://steamcommunity.com/login/getrsakey/",
+          {
+            method: "POST",
+            body: rsaRequestBody,
+            headers: headersForRsaKeyRequest,
+            redirect: "manual",
+          },
+        ).then((r) => r.json());
+
+        if (!body.publickey_mod || !body.publickey_exp) {
+          throw new Error("Invalid RSA key received");
+        }
+
+        const n = BigInt("0x" + body.publickey_mod);
+        const e = BigInt("0x" + body.publickey_exp);
+
+        const rsakey = new RSAKey({
+          n,
+          e,
+          length: getKeySize(n),
+        });
+
+        rsa = new RSA(rsakey);
+        rsatimestamp = body.timestamp;
+      }
+
+      const loginRequestHeaders = new Headers();
+
+      let twoFactorCode = "";
+      if (options.twoFactorCode) {
+        twoFactorCode = options.twoFactorCode;
+      } else if (this.sharedSecret) {
+        twoFactorCode = generateAuthCode(this.sharedSecret);
+      }
+
+      const data = new URLSearchParams({
+        username: this.username,
+        password: (await rsa.encrypt(this.password, { padding: "pkcs1" }))
+          .base64(),
+        // rsa
+        rsatimestamp,
+        // two factor (totp)
+        "twofactorcode": twoFactorCode,
+        // captcha
+        captcha_text: options.captcha || "",
+        captchagid: this.lastLoginAttempt.captcha_gid || "-1",
+        // email
+        emailauth: options.emailauth || "",
+        emailsteamid: "",
+        // other
+        loginfriendlyname: options.loginFriendlyName || "",
+        remember_login: options.rememberLogin || "true",
+        donotcache: Date.now().toString(),
       });
 
-      rsa = new RSA(rsakey);
-      rsatimestamp = body.timestamp;
-    }
+      const resp: {
+        success: boolean;
+        emailauth_needed: boolean;
+        requires_twofactor: boolean;
+        captcha_needed: boolean;
+        message?: string;
+        emaildomain?: string;
+        captcha_gid?: string;
+      } = await this.fetch("https://steamcommunity.com/login/dologin/", {
+        method: "POST",
+        headers: loginRequestHeaders,
+        body: data,
+        redirect: "manual",
+      }).then((r) => r.json());
 
-    const loginRequestHeaders = new Headers();
-
-    let twoFactorCode = "";
-    if (options.twoFactorCode) {
-      twoFactorCode = options.twoFactorCode;
-    } else if (this.sharedSecret) {
-      twoFactorCode = generateAuthCode(this.sharedSecret);
-    }
-
-    const data = new URLSearchParams({
-      username: this.username,
-      password: (await rsa.encrypt(this.password, { padding: "pkcs1" }))
-        .base64(),
-      // rsa
-      rsatimestamp,
-      // two factor (totp)
-      "twofactorcode": twoFactorCode,
-      // captcha
-      captcha_text: options.captcha || "",
-      captchagid: this.lastLoginAttempt.captcha_gid || "-1",
-      // email
-      emailauth: options.emailauth || "",
-      emailsteamid: "",
-      // other
-      loginfriendlyname: options.loginFriendlyName || "",
-      remember_login: options.rememberLogin || "true",
-      donotcache: Date.now().toString(),
-    });
-
-    const resp: {
-      success: boolean;
-      emailauth_needed: boolean;
-      requires_twofactor: boolean;
-      captcha_needed: boolean;
-      message?: string;
-      emaildomain?: string;
-      captcha_gid?: string;
-    } = await this.fetch("https://steamcommunity.com/login/dologin/", {
-      method: "POST",
-      headers: loginRequestHeaders,
-      body: data,
-      redirect: "manual",
-    }).then((r) => r.json());
-
-    if (!resp.success && resp.emailauth_needed) {
-      // code was sent to email
-      this.lastLoginAttempt.emaildomain = resp.emaildomain;
-      const error = new Error("SteamGuard");
-      Object.assign(error, { emaildomain: resp.emaildomain });
-      throw error;
-    } else if (!resp.success && resp.requires_twofactor) {
-      // code generated by steamtotp or mobile app is missing
-      throw new Error("SteamGuardMobile");
-    } else if (
-      !resp.success && resp.captcha_needed &&
-      resp.message?.match(/Please verify your humanity/)
-    ) {
-      this.lastLoginAttempt.captchaurl =
-        "https://steamcommunity.com/login/rendercaptcha/?gid=" +
-        (resp.captcha_gid || "");
-      this.lastLoginAttempt.captcha_gid = resp.captcha_gid;
-      const error = new Error("CAPTCHA");
-      Object.assign(error, { captchaurl: this.lastLoginAttempt.captchaurl });
-    } else if (!resp.success) {
-      throw new Error(resp.message || "Unknown error");
-    } else {
-      this.getSessionID();
-      this.saveCookies();
-      const steamLoginCV = this.cookieJar.getCookie({
-        name: "steamLoginSecure",
-      })
-        ?.value;
-      if (steamLoginCV) {
-        this.steamID = new SteamID(
-          decodeURIComponent(steamLoginCV).split("||")[0],
-        );
+      if (!resp.success && resp.emailauth_needed) {
+        // code was sent to email
+        this.lastLoginAttempt.emaildomain = resp.emaildomain;
+        const error = new Error("SteamGuard");
+        Object.assign(error, { emaildomain: resp.emaildomain });
+        throw error;
+      } else if (!resp.success && resp.requires_twofactor) {
+        // code generated by steamtotp or mobile app is missing
+        throw new Error("SteamGuardMobile");
+      } else if (
+        !resp.success && resp.captcha_needed &&
+        resp.message?.match(/Please verify your humanity/)
+      ) {
+        this.lastLoginAttempt.captchaurl =
+          "https://steamcommunity.com/login/rendercaptcha/?gid=" +
+          (resp.captcha_gid || "");
+        this.lastLoginAttempt.captcha_gid = resp.captcha_gid;
+        const error = new Error("CAPTCHA");
+        Object.assign(error, { captchaurl: this.lastLoginAttempt.captchaurl });
+      } else if (!resp.success) {
+        throw new Error(resp.message || "Unknown error");
       } else {
-        throw new Error("Cannot get steamid from cookies");
-      }
+        this.getSessionID();
+        await this.saveCookies();
+        const steamLoginCV = this.cookieJar.getCookie({
+          name: "steamLoginSecure",
+        })
+          ?.value;
+        if (steamLoginCV) {
+          this.steamID = new SteamID(
+            decodeURIComponent(steamLoginCV).split("||")[0],
+          );
+        } else {
+          throw new Error("Cannot get steamid from cookies");
+        }
 
-      // get steamguard cookie
-      const steamGuardCV = this.cookieJar.getCookie({
-        name: "steamMachineAuth" + this.steamID.toString(),
-      })?.value;
-      if (steamGuardCV) {
-        this.lastLoginAttempt.steamguard = this.steamID.toString() + "||" +
-          decodeURIComponent(steamGuardCV);
+        // get steamguard cookie
+        const steamGuardCV = this.cookieJar.getCookie({
+          name: "steamMachineAuth" + this.steamID.toString(),
+        })?.value;
+        if (steamGuardCV) {
+          this.lastLoginAttempt.steamguard = this.steamID.toString() + "||" +
+            decodeURIComponent(steamGuardCV);
+        }
       }
+    } finally {
+      this.loggingIn = false;
     }
   }
 
@@ -388,6 +421,7 @@ export class SteamCommunity {
     isFamilyLockActive: boolean | undefined;
     error?: Error;
   }> {
+    await this.loadCookies();
     try {
       const response = await this.fetch("https://steamcommunity.com/my", {
         redirect: "manual",
