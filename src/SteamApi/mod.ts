@@ -1,14 +1,18 @@
 import { ServiceRequest } from "./requests/ServiceRequest.ts";
+import { wrapFetchWithHeaders } from "../../deps.ts";
+import { DEFAULT_USERAGENT } from "../fetch_utils.ts";
 
 type ServiceResponse<T extends ServiceRequest> = T["responseStructure"];
 
 export class SteamApi {
   apikey: string;
+  wrappedFetch;
 
   static baseURL = "https://api.steampowered.com";
 
   constructor(apikey: string) {
     this.apikey = apikey;
+    this.wrappedFetch = wrapFetchWithHeaders({ userAgent: DEFAULT_USERAGENT });
   }
 
   /**
@@ -44,7 +48,7 @@ export class SteamApi {
       serviceRequest.body.set("key", this.apikey);
     }
 
-    let result = await fetch(fetchURL, {
+    let result = await this.wrappedFetch(fetchURL, {
       method: serviceRequest.method,
       // no body when sending "GET" requests
       body: serviceRequest.method === "GET" ? undefined : serviceRequest.body,

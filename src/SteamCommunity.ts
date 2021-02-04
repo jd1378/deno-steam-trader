@@ -11,6 +11,7 @@ import {
   wrapFetchWithCookieJar,
   wrapFetchWithHeaders,
 } from "../deps.ts";
+import { DEFAULT_USERAGENT } from "./fetch_utils.ts";
 import { EResult } from "./enums/EResult.ts";
 
 export type SteamCommunityOptions = {
@@ -56,9 +57,6 @@ export type LoginAttemptData = {
   emaildomain?: string;
   steamguard?: string;
 };
-
-const DEFAULT_USERAGENT =
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36";
 
 // DoctorMcKay/node-steamcommunity was at 3.42.0 at the time of writing this.
 export class SteamCommunity extends EventEmitter {
