@@ -36,7 +36,6 @@ export class GetAssetClassInfo extends ISteamEconomyRequest {
     const params = {
       appid: options.appid,
       language: options.language,
-      description: options.description,
       class_count: options.classList.length,
     };
     this.getParams = {
