@@ -27,6 +27,8 @@ export abstract class ServiceRequest {
 
   /** a method that if defined, will be called with JSON-parsed result of the request. can be async. */
   postProcess?(response: unknown): unknown | Promise<unknown>;
+
+  responseStructure?: Record<string, unknown>;
 }
 
 export enum Methods {
