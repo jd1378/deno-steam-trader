@@ -26,6 +26,33 @@ export class CancelTradeOffer extends IEconServiceRequest {
   }
 }
 
+export type OfferItem = {
+  "appid": number | string;
+  "contextid": string;
+  "assetid": string;
+  "classid": string;
+  "instanceid": string;
+  "amount": string;
+  "missing": boolean;
+  "est_usd": string;
+};
+
+export type Offer = {
+  "tradeofferid": string;
+  "accountid_other": string | number;
+  "message": string;
+  "expiration_time": number;
+  "trade_offer_state": number;
+  "items_to_give": Array<OfferItem>;
+  "is_our_offer": boolean;
+  "time_created": number;
+  "time_updated": number;
+  "from_real_time_trade": boolean;
+  "escrow_end_date": number;
+  "confirmation_method": number;
+  "tradeid": string | undefined;
+};
+
 /** Decline a trade offer someone sent to us */
 export class DeclineTradeOffer extends IEconServiceRequest {
   method = Methods.POST;
@@ -59,32 +86,9 @@ export class GetTradeOffer extends IEconServiceRequest {
 
   responseStructure?: {
     response: {
-      offer: {
-        "tradeofferid": string;
-        "accountid_other": string | number;
-        "message": string;
-        "expiration_time": number;
-        "trade_offer_state": number;
-        "items_to_give": Array<
-          {
-            "appid": number | string;
-            "contextid": string;
-            "assetid": string;
-            "classid": string;
-            "instanceid": string;
-            "amount": string;
-            "missing": boolean;
-            "est_usd": string;
-          }
-        >;
-        "is_our_offer": boolean;
-        "time_created": number;
-        "time_updated": number;
-        "from_real_time_trade": boolean;
-        "escrow_end_date": number;
-        "confirmation_method": number;
-      };
-      descriptions: Array<Omit<SteamEconItem, "id" | "assetid" | "amount">>;
+      offer: Offer;
+      /** only if get_descriptions is true */
+      descriptions?: Array<Omit<SteamEconItem, "id" | "assetid" | "amount">>;
     };
   };
 }
@@ -119,6 +123,15 @@ export class GetTradeOffers extends IEconServiceRequest {
       ...options,
     };
   }
+
+  responseStructure?: {
+    response: {
+      trade_offers_sent?: Array<Offer>;
+      trade_offers_received?: Array<Offer>;
+      /** only if get_descriptions is true */
+      descriptions?: Array<Omit<SteamEconItem, "id" | "assetid" | "amount">>;
+    };
+  };
 }
 
 /** Get counts of pending and new trade offers */
