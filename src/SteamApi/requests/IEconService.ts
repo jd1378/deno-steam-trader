@@ -31,7 +31,7 @@ export type OfferItem = {
   contextid: string;
   assetid: string;
   classid: string;
-  instanceid: string;
+  instanceid?: string;
   amount?: string;
   missing?: boolean;
   est_usd?: string;
