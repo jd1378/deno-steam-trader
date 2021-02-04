@@ -1,6 +1,7 @@
 // deno-lint-ignore-file camelcase
 
 import { Methods, ServiceRequest } from "./ServiceRequest.ts";
+import { SteamEconItem } from "./../../EconItem.ts";
 
 abstract class ISteamEconomyRequest extends ServiceRequest {
   constructor() {
@@ -29,6 +30,11 @@ export class GetAssetClassInfo extends ISteamEconomyRequest {
   version = "v1";
 
   skipFix = false;
+
+  responseStructure?: Record<
+    string,
+    Omit<SteamEconItem, "id" | "assetid" | "amount">
+  >;
 
   constructor(options: GetAssetClassInfoOptions) {
     super();
