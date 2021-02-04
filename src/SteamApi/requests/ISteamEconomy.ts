@@ -82,6 +82,7 @@ export class GetAssetClassInfo extends ISteamEconomyRequest {
     const result = response.result;
 
     for (const descKey of Object.keys(result)) {
+      if (typeof descKey !== "object") break;
       this.fixArray(result[descKey], "fraudwarnings");
       this.fixArray(result[descKey], "descriptions");
       this.fixArray(result[descKey], "owner_descriptions");
