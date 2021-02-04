@@ -1,19 +1,19 @@
 import { EventEmitter, getLanguageInfo } from "../deps.ts";
 
-export type SteamTraderOptions = {
+export type TradeManagerOptions = {
   /** default: 'localhost' */
   domain?: string;
   /** default: 'en' */
   language?: string;
 };
 
-export class SteamTrader extends EventEmitter {
+export class TradeManager extends EventEmitter {
   language: string;
   languageName: string;
   domain: string;
   private pollTimer: number | undefined;
 
-  constructor(options: SteamTraderOptions) {
+  constructor(options: TradeManagerOptions) {
     super();
 
     const { domain = "localhost", language = "en" } = options;
