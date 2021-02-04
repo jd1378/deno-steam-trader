@@ -27,14 +27,14 @@ export class CancelTradeOffer extends IEconServiceRequest {
 }
 
 export type OfferItem = {
-  "appid": number | string;
-  "contextid": string;
-  "assetid": string;
-  "classid": string;
-  "instanceid": string;
-  "amount": string;
-  "missing": boolean;
-  "est_usd": string;
+  appid: number | string;
+  contextid: string;
+  assetid: string;
+  classid: string;
+  instanceid: string;
+  amount?: string;
+  missing?: boolean;
+  est_usd?: string;
 };
 
 export type Offer = {
