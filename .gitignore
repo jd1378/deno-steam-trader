@@ -106,3 +106,5 @@ dist
 cjar.json
 test*.ts
 *.bin
+trade*.json
+item*.json
