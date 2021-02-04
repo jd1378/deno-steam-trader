@@ -15,6 +15,10 @@ export class SteamApi {
     this.wrappedFetch = wrapFetchWithHeaders({ userAgent: DEFAULT_USERAGENT });
   }
 
+  setApiKey(key: string) {
+    this.apikey = key;
+  }
+
   /**
    * fetch a ServiceRequest object
    * @param serviceRequest - see src/SteamApis/ folder for available requests
