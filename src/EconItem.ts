@@ -2,6 +2,24 @@
 import { SteamApi } from "./SteamApi/mod.ts";
 import { OfferItem } from "./SteamApi/requests/IEconService.ts";
 import { GetAssetClassInfo } from "./SteamApi/requests/ISteamEconomy.ts";
+import { LFU } from "../deps.ts";
+
+export const itemDescriptionLFU = new LFU({
+  capacity: 500,
+  stdTTL: 2 * 60 * 1000, // 2 minutes
+});
+
+function getCacheKey(item: OfferItem) {
+  return `${item.appid}_${item.classid}_${item.instanceid || "0"}`;
+}
+
+export function getDescriptionKey(item: OfferItem) {
+  let key = `${item.classid}`;
+  if (item.instanceid && item.instanceid != "0") {
+    key += "_" + item.instanceid;
+  }
+  return key;
+}
 
 export type EconItemDescription = {
   type: string;
@@ -259,8 +277,13 @@ export class EconItem {
     return null;
   }
 
+  /** throws error if getting descriptions and api is unavailable */
   async from(offerItem: OfferItem, options?: FromOfferItemOptions) {
-    if (options?.getDescriptions && options?.steamApi) {
+    let cachedData = itemDescriptionLFU.get(getCacheKey(offerItem));
+    if (
+      !cachedData && options?.getDescriptions && options.steamApi &&
+      options.language
+    ) {
       const data = await options.steamApi.fetch(
         new GetAssetClassInfo({
           appid: offerItem.appid,
@@ -271,16 +294,63 @@ export class EconItem {
           }],
         }),
       );
-      return new EconItem({ ...data, ...offerItem });
+      const descKey = getDescriptionKey(offerItem);
+      if (data && data[descKey]) {
+        itemDescriptionLFU.set(getCacheKey(offerItem), data[descKey]);
+        cachedData = data[descKey];
+      }
     }
-    return new EconItem(offerItem);
+
+    return new EconItem({ ...cachedData, ...offerItem });
   }
 
+  /** throws error if getting descriptions and api is unavailable or response is malformed */
   async fromList(
     offerItemList: Array<OfferItem>,
     options?: FromOfferItemOptions,
-  ) {
-    //
+  ): Promise<EconItem[]> {
+    const items: EconItem[] = [];
+    const shouldGetDescriptions =
+      !!(options?.getDescriptions && options.steamApi && options.language);
+
+    const appidGroupedOfferItems: Record<string, Array<OfferItem>> = {};
+    for (const offerItem of offerItemList) {
+      const cachedData = itemDescriptionLFU.get(getCacheKey(offerItem));
+      if (!cachedData && shouldGetDescriptions) {
+        appidGroupedOfferItems[offerItem.appid].push(offerItem);
+      } else {
+        items.push(new EconItem({ ...cachedData, ...offerItem }));
+      }
+    }
+
+    if (options && shouldGetDescriptions) {
+      for (const appid of Object.keys(appidGroupedOfferItems)) {
+        const data = await options.steamApi.fetch(
+          new GetAssetClassInfo({
+            appid: appid,
+            language: options.language,
+            classList: appidGroupedOfferItems[appid].map((offerItem) => ({
+              classid: offerItem.classid,
+              instanceid: offerItem.instanceid,
+            })),
+          }),
+        );
+        if (!data) throw new Error("malformed response");
+        if (data) {
+          appidGroupedOfferItems[appid].forEach((offerItem) => {
+            const descKey = getDescriptionKey(offerItem);
+            if (data[descKey]) {
+              itemDescriptionLFU.set(getCacheKey(offerItem), data[descKey]);
+              items.push(new EconItem({ ...data[descKey], ...offerItem }));
+            } else {
+              throw new Error("one of items descriptions was not found");
+            }
+          });
+        }
+      }
+    }
+
+    return items;
   }
 }
 
