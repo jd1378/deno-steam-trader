@@ -57,8 +57,10 @@ export type LoginAttemptData = {
   steamguard?: string;
 };
 
-// DoctorMcKay/node-steamcommunity was at 3.42.0 at the time of writing this.
+const DEFAULT_USERAGENT =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36";
 
+// DoctorMcKay/node-steamcommunity was at 3.42.0 at the time of writing this.
 export class SteamCommunity extends EventEmitter {
   languageName: string;
   private cookieJar: CookieJar;
@@ -89,7 +91,10 @@ export class SteamCommunity extends EventEmitter {
     const wrappedWithCookiesFetch = wrapFetchWithCookieJar({
       cookieJar: this.cookieJar,
     });
-    this.fetch = wrapFetchWithHeaders({ fetchFn: wrappedWithCookiesFetch });
+    this.fetch = wrapFetchWithHeaders({
+      fetchFn: wrappedWithCookiesFetch,
+      userAgent: DEFAULT_USERAGENT,
+    });
   }
 
   // TODO: save and load cookies properly
@@ -134,50 +139,58 @@ export class SteamCommunity extends EventEmitter {
     }
   }
 
-  async getWebApiKey(domain: string, secondCall = false): Promise<string> {
-    const body = await this.fetch(
-      "https://steamcommunity.com/dev/apikey?l=english",
-      {
-        redirect: "error",
-      },
-    ).then((res) => res.text());
-
-    if (body.match(/<h2>Access Denied<\/h2>/)) {
-      throw new Error("Access Denied");
-    }
-
-    if (
-      body.match(
-        /You must have a validated email address to create a Steam Web API key./,
-      )
-    ) {
-      throw new Error(
-        "You must have a validated email address to create a Steam Web API key.",
-      );
-    }
-
-    const match = body.match(/<p>Key: ([0-9A-F]+)<\/p>/);
-    if (match) {
-      // We already have an API key registered
-      return match[1];
-    } else if (!secondCall) {
-      // We need to register a new API key
-      const reqBody = new FormData();
-      reqBody.append("domain", domain);
-      reqBody.append("agreeToTerms", "agreed");
-      reqBody.append("sessionid", this.getSessionID());
-      reqBody.append("Submit", "Register");
-      await this.fetch(
-        "https://steamcommunity.com/dev/registerkey?l=english",
+  /**
+   * @param domain - your domain name
+   */
+  async getWebApiKey(domain: string): Promise<string> {
+    let secondCall = false;
+    const sendRequest = async (): Promise<string> => {
+      const body = await this.fetch(
+        "https://steamcommunity.com/dev/apikey?l=english",
         {
-          method: "POST",
-          body: reqBody,
+          redirect: "error",
         },
-      );
-      return (await this.getWebApiKey(domain, true));
-    } else {
-      throw new Error("Failed to get a api key");
-    }
+      ).then((res) => res.text());
+
+      if (body.match(/<h2>Access Denied<\/h2>/)) {
+        throw new Error("Access Denied");
+      }
+
+      if (
+        body.match(
+          /You must have a validated email address to create a Steam Web API key./,
+        )
+      ) {
+        throw new Error(
+          "You must have a validated email address to create a Steam Web API key.",
+        );
+      }
+
+      const match = body.match(/<p>Key: ([0-9A-F]+)<\/p>/);
+      if (match) {
+        // We already have an API key registered
+        return match[1];
+      } else if (!secondCall) {
+        // We need to register a new API key
+        const reqBody = new FormData();
+        reqBody.append("domain", domain);
+        reqBody.append("agreeToTerms", "agreed");
+        reqBody.append("sessionid", this.getSessionID());
+        reqBody.append("Submit", "Register");
+        await this.fetch(
+          "https://steamcommunity.com/dev/registerkey?l=english",
+          {
+            method: "POST",
+            body: reqBody,
+          },
+        );
+        secondCall = true;
+        return await sendRequest();
+      } else {
+        throw new Error("Failed to get a api key");
+      }
+    };
+    return await sendRequest();
   }
 
   private setCookie(cookie: Cookie) {
