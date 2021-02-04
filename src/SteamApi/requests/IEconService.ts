@@ -90,8 +90,8 @@ export class GetTradeOffer extends IEconServiceRequest {
 
   responseStructure?: {
     response: {
-      offer: Offer;
-      /** only if get_descriptions is true */
+      offer?: Offer;
+      /** only if get_descriptions is true. unreliable */
       descriptions?: Array<Omit<SteamEconItem, "id" | "assetid" | "amount">>;
     };
   };
@@ -132,7 +132,7 @@ export class GetTradeOffers extends IEconServiceRequest {
     response: {
       trade_offers_sent?: Array<Offer>;
       trade_offers_received?: Array<Offer>;
-      /** only if get_descriptions is true */
+      /** only if get_descriptions is true. unreliable */
       descriptions?: Array<Omit<SteamEconItem, "id" | "assetid" | "amount">>;
     };
   };
