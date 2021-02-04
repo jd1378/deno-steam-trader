@@ -1,4 +1,7 @@
 // deno-lint-ignore-file camelcase
+import { SteamApi } from "./SteamApi/mod.ts";
+import { OfferItem } from "./SteamApi/requests/IEconService.ts";
+import { GetAssetClassInfo } from "./SteamApi/requests/ISteamEconomy.ts";
 
 export type EconItemDescription = {
   type: string;
@@ -24,21 +27,17 @@ export type SteamEconItemTag = {
   color?: string;
 };
 
-/**
- * when using `https://api.steampowered.com/ISteamEconomy/GetAssetClassInfo/v1/` api,
- * make sure you fix the arrays before passing it to `EconItem` constructor.
- */
 export type SteamEconItem = {
   /** same as asset id */
   id?: string | number;
   assetid?: string | number;
   classid: string;
   currencyid?: string | number;
-  name: string;
-  market_name: string;
-  market_hash_name: string;
+  name?: string;
+  market_name?: string;
+  market_hash_name?: string;
   appid?: string | number;
-  icon_url: string;
+  icon_url?: string;
   icon_url_large?: string;
   contextid: string;
   instanceid?: string;
@@ -52,10 +51,11 @@ export type SteamEconItem = {
   tags?: Array<SteamEconItemTag>;
   market_tradable_restriction?: string | number;
   market_marketable_restriction?: string | number;
-  type: string;
+  type?: string;
   background_color?: string;
   descriptions?: Array<EconItemDescription>;
   owner_descriptions?: Array<EconItemDescription>;
+  owner_actions?: Array<EconItemAction>;
   actions?: Array<EconItemAction>;
   cache_expiration?: string;
 };
@@ -93,41 +93,41 @@ export class EconItem {
    * Only usable when classid is available.
    * instanceid allows you to get finer details such as how many kills are on a strange/StatTrak weapon, or custom names/descriptions.
    */
-  instanceid: string;
+  instanceid?: string;
   /** this name can be localized. it usually does not contain details such as CS:GO skin wear. */
-  name: string;
+  name?: string;
   /** this name which is shown when item is up for sale. may contain detail such as wear. */
-  market_name: string;
+  market_name?: string;
   /** this name is the one used in url of market item's page.
    * it may contain appid in the beginning.
    * hash names should be unique inside one appid (and context id), but not necessarilly globally.
    */
-  market_hash_name: string;
+  market_hash_name?: string;
   /** Value for unstackable items is always 1. Stacked items always have the same asset ID. */
   amount: number;
   currencyid?: string | number;
   is_currency = false;
-  icon_url: string;
+  icon_url?: string;
   icon_url_large?: string;
   /** defaults to empty string if unavailable */
   background_color: string;
-  contextid: string;
+  contextid?: string;
   fraudwarnings: Array<string>;
-  descriptions: Array<EconItemDescription>;
+  descriptions?: Array<EconItemDescription>;
   /** true if the item can be traded, false if not. */
-  tradable: boolean;
+  tradable?: boolean;
   /** true if the item can be listed on the Steam Community Market, false if not. */
-  marketable: boolean;
+  marketable?: boolean;
   /** true if, on the Steam Community Market, this item will use buy orders. false if not. */
-  commodity: boolean;
+  commodity?: boolean;
   /** An array of objects containing the item's inventory tags. */
-  tags: Array<EconItemTag>;
+  tags?: Array<EconItemTag>;
   /** How many days for which the item will be untradable after being sold on the market. */
-  market_tradable_restriction: number;
+  market_tradable_restriction?: number;
   /** How many days for which the item will be unmarketable after being sold on the market. */
-  market_marketable_restriction: number;
+  market_marketable_restriction?: number;
   /** The "type" that's shown under the game name to the right of the game icon. */
-  type: string;
+  type?: string;
   /** RFC 3339 UTC formatted time of when the item can no longer be used.
    *  Any Market listings will not be purchasable after this time and will be automatically canceled. */
   item_expiration?: string;
@@ -135,7 +135,7 @@ export class EconItem {
    * This will be useful, for example, if the item becomes tradable at a later time. */
   cache_expiration?: string;
   market_fee_app?: number;
-  actions: Array<EconItemAction>;
+  actions?: Array<EconItemAction>;
 
   constructor(item: SteamEconItem) {
     if (
@@ -258,4 +258,34 @@ export class EconItem {
 
     return null;
   }
+
+  async from(offerItem: OfferItem, options?: FromOfferItemOptions) {
+    if (options?.getDescriptions && options?.steamApi) {
+      const data = await options.steamApi.fetch(
+        new GetAssetClassInfo({
+          appid: offerItem.appid,
+          language: options.language,
+          classList: [{
+            classid: offerItem.classid,
+            instanceid: offerItem.instanceid,
+          }],
+        }),
+      );
+      return new EconItem({ ...data, ...offerItem });
+    }
+    return new EconItem(offerItem);
+  }
+
+  async fromList(
+    offerItemList: Array<OfferItem>,
+    options?: FromOfferItemOptions,
+  ) {
+    //
+  }
 }
+
+export type FromOfferItemOptions = {
+  getDescriptions: boolean;
+  steamApi: SteamApi;
+  language: string;
+};
