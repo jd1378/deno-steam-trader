@@ -38,23 +38,26 @@ export type OfferItem = {
 };
 
 export type Offer = {
-  "tradeofferid": string;
-  "accountid_other": string | number;
-  "message": string;
+  tradeofferid: string;
+  accountid_other: string | number;
+  message: string;
   /** unix timestamp (seconds) */
-  "expiration_time": number;
-  "trade_offer_state": number;
-  "items_to_give": Array<OfferItem>;
-  "items_to_receive": Array<OfferItem>;
-  "is_our_offer": boolean;
+  expiration_time: number;
+  trade_offer_state: number;
+  /** available only have items to give */
+  items_to_give?: Array<OfferItem>;
+  /** available only have items to receive */
+  items_to_receive?: Array<OfferItem>;
+  is_our_offer: boolean;
   /** unix timestamp (seconds) */
-  "time_created": number;
+  time_created: number;
   /** unix timestamp (seconds) */
-  "time_updated": number;
-  "from_real_time_trade": boolean;
-  "escrow_end_date": number;
-  "confirmation_method": number;
-  "tradeid": string | undefined;
+  time_updated: number;
+  from_real_time_trade: boolean;
+  escrow_end_date: number;
+  confirmation_method: number;
+  /** available when trade is complete */
+  tradeid?: string | undefined;
 };
 
 /** Decline a trade offer someone sent to us */
