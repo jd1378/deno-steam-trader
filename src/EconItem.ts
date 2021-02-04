@@ -5,8 +5,8 @@ import { GetAssetClassInfo } from "./SteamApi/requests/ISteamEconomy.ts";
 import { LFU } from "../deps.ts";
 
 export const itemDescriptionLFU = new LFU({
-  capacity: 500,
-  stdTTL: 2 * 60 * 1000, // 2 minutes
+  capacity: 1500,
+  stdTTL: 3 * 60 * 1000, // 2 minutes
 });
 
 function getCacheKey(item: OfferItem) {
