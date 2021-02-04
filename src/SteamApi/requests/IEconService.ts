@@ -1,4 +1,5 @@
 // deno-lint-ignore-file camelcase
+import { SteamEconItem } from "./../../EconItem.ts";
 
 import { Methods, ServiceRequest } from "./ServiceRequest.ts";
 
@@ -55,6 +56,37 @@ export class GetTradeOffer extends IEconServiceRequest {
       ...options,
     };
   }
+
+  responseStructure?: {
+    response: {
+      offer: {
+        "tradeofferid": string;
+        "accountid_other": string | number;
+        "message": string;
+        "expiration_time": number;
+        "trade_offer_state": number;
+        "items_to_give": Array<
+          {
+            "appid": number | string;
+            "contextid": string;
+            "assetid": string;
+            "classid": string;
+            "instanceid": string;
+            "amount": string;
+            "missing": boolean;
+            "est_usd": string;
+          }
+        >;
+        "is_our_offer": boolean;
+        "time_created": number;
+        "time_updated": number;
+        "from_real_time_trade": boolean;
+        "escrow_end_date": number;
+        "confirmation_method": number;
+      };
+      descriptions: Array<Omit<SteamEconItem, "id" | "assetid" | "amount">>;
+    };
+  };
 }
 
 export type GetTradeOffersOptions = {
