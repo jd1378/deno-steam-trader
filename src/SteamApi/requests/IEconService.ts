@@ -96,7 +96,7 @@ export type GetTradeOffersOptions = {
   get_received_offers: boolean;
   /** If set, the item display data for the items included in the returned trade offers will also be returned. If one or more descriptions can't be retrieved, then your request will fail. */
   get_descriptions: boolean;
-  language: boolean;
+  language: string;
   /** Indicates we should only return offers which are still active, or offers that have changed in state since the time_historical_cutoff */
   active_only: boolean;
   /** Indicates we should only return offers which are not active. */
