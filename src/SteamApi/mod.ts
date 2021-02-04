@@ -1,5 +1,7 @@
 import { ServiceRequest } from "./requests/ServiceRequest.ts";
 
+type ServiceResponse<T extends ServiceRequest> = T["responseStructure"];
+
 export class SteamApi {
   apikey: string;
 
@@ -13,7 +15,9 @@ export class SteamApi {
    * fetch a ServiceRequest object
    * @param serviceRequest - see src/SteamApis/ folder for available requests
    */
-  async fetch(serviceRequest: ServiceRequest) {
+  async fetch<T extends ServiceRequest>(
+    serviceRequest: T,
+  ): Promise<ServiceResponse<T>> {
     // replace booleans in getParams with 1 and 0
     // remove undefined values in getParams
     if (serviceRequest.getParams) {
