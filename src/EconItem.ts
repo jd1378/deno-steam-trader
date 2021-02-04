@@ -278,7 +278,7 @@ export class EconItem {
   }
 
   /** throws error if getting descriptions and api is unavailable */
-  async from(offerItem: OfferItem, options?: FromOfferItemOptions) {
+  static async from(offerItem: OfferItem, options?: FromOfferItemOptions) {
     let cachedData = itemDescriptionLFU.get(getCacheKey(offerItem));
     if (
       !cachedData && options?.getDescriptions && options.steamApi &&
@@ -305,7 +305,7 @@ export class EconItem {
   }
 
   /** throws error if getting descriptions and api is unavailable or response is malformed */
-  async fromList(
+  static async fromList(
     offerItemList: Array<OfferItem>,
     options?: FromOfferItemOptions,
   ): Promise<EconItem[]> {
