@@ -102,7 +102,7 @@ export type GetTradeOffersOptions = {
   /** Indicates we should only return offers which are not active. */
   historical_only: boolean;
   /** When active_only is set, offers updated since this time will also be returned */
-  time_historical_cutoff: string;
+  time_historical_cutoff: string | number;
 };
 
 /** Get a list of sent or received trade offers */
