@@ -1,4 +1,4 @@
-import { SteamApi } from "./SteamApi/mod";
+import { SteamApi } from "./SteamApi/mod.ts";
 import { Offer } from "./SteamApi/requests/IEconService.ts";
 import { EconItem } from "./EconItem.ts";
 import { SteamID } from "../deps.ts";
@@ -62,7 +62,7 @@ export class TradeOffer {
     this.itemsToGive = [];
     this.itemsToReceive = [];
     this.isOurOffer = undefined;
-    this.escrowEnds = undefined;
+    this.escrowEndsAt = undefined;
     this.confirmationMethod = EConfirmationMethod.None;
   }
 
