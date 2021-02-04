@@ -41,11 +41,15 @@ export type Offer = {
   "tradeofferid": string;
   "accountid_other": string | number;
   "message": string;
+  /** unix timestamp (seconds) */
   "expiration_time": number;
   "trade_offer_state": number;
   "items_to_give": Array<OfferItem>;
+  "items_to_receive": Array<OfferItem>;
   "is_our_offer": boolean;
+  /** unix timestamp (seconds) */
   "time_created": number;
+  /** unix timestamp (seconds) */
   "time_updated": number;
   "from_real_time_trade": boolean;
   "escrow_end_date": number;
