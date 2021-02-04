@@ -54,8 +54,8 @@ export type SteamEconItem = {
   market_marketable_restriction?: string | number;
   type: string;
   background_color?: string;
-  descriptions: Array<EconItemDescription>;
-  owner_descriptions: Array<EconItemDescription>;
+  descriptions?: Array<EconItemDescription>;
+  owner_descriptions?: Array<EconItemDescription>;
   actions?: Array<EconItemAction>;
   cache_expiration?: string;
 };
