@@ -13,20 +13,29 @@ function normalizeKey(key: string) {
   return newKey;
 }
 
-export async function saveData(path: string | URL, data: string) {
-  const key = normalizeKey(await getMachineId());
-  const aes = new AES(key);
-  await Deno.writeFile(path, await aes.encrypt(data));
-}
+/**
+ * For using this class you need to give proper permissions to deno. It encrypts your data with this machine's id.
+ * 
+ * on windows: --allow-env, --allow-run
+ * 
+ * on linux: --allow-read=/var/lib/dbus/machine-id,/etc/machine-id
+ */
+export class CryptStorage {
+  static async saveData(path: string | URL, data: string) {
+    const key = normalizeKey(await getMachineId());
+    const aes = new AES(key);
+    await Deno.writeFile(path, await aes.encrypt(data));
+  }
 
-export async function loadData(path: string | URL): Promise<string> {
-  const fileData = await Deno.readFile(path);
+  static async loadData(path: string | URL): Promise<string> {
+    const fileData = await Deno.readFile(path);
 
-  const key = normalizeKey(await getMachineId());
-  const aes = new AES(key);
+    const key = normalizeKey(await getMachineId());
+    const aes = new AES(key);
 
-  const data = Buffer.from(await aes.decrypt(fileData)).toString(
-    "utf-8",
-  );
-  return data;
+    const data = Buffer.from(await aes.decrypt(fileData)).toString(
+      "utf-8",
+    );
+    return data;
+  }
 }
