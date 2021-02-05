@@ -352,6 +352,18 @@ export class EconItem {
 
     return items;
   }
+
+  static equals(a: EconItem, b: EconItem) {
+    return (
+      a.appid == b.appid &&
+      a.contextid == b.contextid &&
+      a.assetid == b.assetid
+    );
+  }
+
+  equals(item: EconItem) {
+    return EconItem.equals(this, item);
+  }
 }
 
 export type FromOfferItemOptions = {
