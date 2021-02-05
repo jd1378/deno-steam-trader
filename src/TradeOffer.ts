@@ -74,42 +74,46 @@ export class TradeOffer {
     return EConfirmationMethod[this.confirmationMethod];
   }
 
-  static async from(data: Offer, options?: OfferFromOptions) {
+  async update(data: Offer, options?: UpdateOptions) {
     const {
       getDescriptions = false,
       steamApi = undefined,
       language = undefined,
     } = options ? options : {};
-    const offer = new TradeOffer(
-      new SteamID("[U:1:" + data.accountid_other + "]"),
-    );
-    offer.id = data.tradeofferid.toString();
-    offer.message = data.message;
-    offer.state = data.trade_offer_state;
-    offer.itemsToGive = await EconItem.fromList(
+    this.id = data.tradeofferid.toString();
+    this.message = data.message;
+    this.state = data.trade_offer_state;
+    this.itemsToGive = await EconItem.fromList(
       data.items_to_give || [],
       getDescriptions && steamApi && language ? options : undefined,
     );
-    offer.itemsToReceive = await EconItem.fromList(
+    this.itemsToReceive = await EconItem.fromList(
       data.items_to_receive || [],
       getDescriptions && steamApi && language ? options : undefined,
     );
 
-    offer.isOurOffer = data.is_our_offer;
-    offer.created = new Date(data.time_created * 1000);
-    offer.updated = new Date(data.time_updated * 1000);
-    offer.expires = new Date(data.expiration_time * 1000);
-    offer.tradeID = data.tradeid?.toString() || undefined;
-    offer.fromRealTimeTrade = data.from_real_time_trade;
-    offer.confirmationMethod = data.confirmation_method ||
+    this.isOurOffer = data.is_our_offer;
+    this.created = new Date(data.time_created * 1000);
+    this.updated = new Date(data.time_updated * 1000);
+    this.expires = new Date(data.expiration_time * 1000);
+    this.tradeID = data.tradeid?.toString() || undefined;
+    this.fromRealTimeTrade = data.from_real_time_trade;
+    this.confirmationMethod = data.confirmation_method ||
       EConfirmationMethod.None;
-    offer.escrowEndsAt = data.escrow_end_date
+    this.escrowEndsAt = data.escrow_end_date
       ? new Date(data.escrow_end_date * 1000)
       : undefined;
   }
+
+  static async from(data: Offer, options?: UpdateOptions) {
+    const offer = new TradeOffer(
+      new SteamID("[U:1:" + data.accountid_other + "]"),
+    );
+    await offer.update(data, options);
+  }
 }
 
-type OfferFromOptions = {
+type UpdateOptions = {
   getDescriptions: boolean;
   steamApi: SteamApi;
   language: string;
