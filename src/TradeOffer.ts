@@ -74,6 +74,23 @@ export class TradeOffer {
     return EConfirmationMethod[this.confirmationMethod];
   }
 
+  containsItem(item: EconItem) {
+    function containPredicate(_item: EconItem) {
+      return _item.appid === item.appid && _item.assetid === item.assetid &&
+        _item.contextid === item.contextid;
+    }
+    return this.itemsToGive.some(containPredicate) ||
+      this.itemsToReceive.some(containPredicate);
+  }
+
+  setMessage(msg: string) {
+    if (this.id) {
+      throw new Error("Cannot set message in an already-sent offer");
+    }
+
+    this.message = msg.toString().substring(0, 128);
+  }
+
   isGlitched() {
     if (!this.id) {
       // not sent yet
@@ -93,7 +110,8 @@ export class TradeOffer {
     return false;
   }
 
-  async update(data: Offer, options?: UpdateOptions) {
+  /** do not use this method to update an offer. it is used internally. */
+  async _update(data: Offer, options?: UpdateOptions) {
     const {
       getDescriptions = false,
       steamApi = undefined,
@@ -128,7 +146,7 @@ export class TradeOffer {
     const offer = new TradeOffer(
       new SteamID("[U:1:" + data.accountid_other + "]"),
     );
-    await offer.update(data, options);
+    await offer._update(data, options);
   }
 }
 
