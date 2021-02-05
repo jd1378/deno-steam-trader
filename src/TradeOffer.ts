@@ -91,6 +91,14 @@ export class TradeOffer {
     this.message = msg.toString().substring(0, 128);
   }
 
+  setToken(token: string) {
+    if (this.id) {
+      throw new Error("Cannot set token in an already-sent offer");
+    }
+
+    this.token = token;
+  }
+
   isGlitched() {
     if (!this.id) {
       // not sent yet
