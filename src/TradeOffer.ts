@@ -40,7 +40,11 @@ export class TradeOffer {
   confirmationMethod: EConfirmationMethod;
   escrowEndsAt: Date | undefined;
   /** the token used to create an offer. usually available in user's trade url */
-  private token: string | undefined;
+  private _token: string | undefined;
+
+  public get token() {
+    return this._token;
+  }
 
   constructor(partner: string | SteamID, token?: string) {
     if (typeof partner === "string") {
@@ -49,7 +53,7 @@ export class TradeOffer {
       this.partner = partner;
     }
 
-    this.token = token;
+    this._token = token;
 
     if (
       !this.partner.isValid || !this.partner.isValid() ||
@@ -96,7 +100,7 @@ export class TradeOffer {
       throw new Error("Cannot set token in an already-sent offer");
     }
 
-    this.token = token;
+    this._token = token;
   }
 
   isGlitched() {
