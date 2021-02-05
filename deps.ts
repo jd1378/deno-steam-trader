@@ -15,9 +15,9 @@ export {
   Cookie,
   CookieJar,
   wrapFetch as wrapFetchWithCookieJar,
-} from "https://deno.land/x/another_cookiejar@v2.2.2/mod.ts";
+} from "https://deno.land/x/another_cookiejar@v2.2.3/mod.ts";
 
-export { wrapFetch as wrapFetchWithHeaders } from "https://deno.land/x/fetch_goody@v1.2.0/mod.ts";
+export { wrapFetch as wrapFetchWithHeaders } from "https://deno.land/x/fetch_goody@v1.2.1/mod.ts";
 
 export { RSA } from "https://deno.land/x/god_crypto@v1.4.9/src/rsa/mod.ts";
 export { AES } from "https://deno.land/x/god_crypto@v1.4.9/src/aes/mod.ts";
