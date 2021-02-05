@@ -98,6 +98,29 @@ export class GetTradeOffer extends IEconServiceRequest {
       descriptions?: Array<Omit<SteamEconItem, "id" | "assetid" | "amount">>;
     };
   };
+  postProcess(body: {
+    response?: {
+      offer?: Offer;
+      /** only if get_descriptions is true. unreliable */
+      descriptions?: Array<Omit<SteamEconItem, "id" | "assetid" | "amount">>;
+    };
+  }) {
+    if (!body.response) {
+      throw new Error("malformed response");
+    }
+
+    if (!body.response.offer) {
+      throw new Error("offer not found");
+    }
+
+    const bothSidesEmpty =
+      (body.response.offer.items_to_give || []).length === 0 &&
+      (body.response.offer.items_to_receive || []).length === 0;
+
+    if (!body.response.offer.accountid_other || bothSidesEmpty) {
+      throw new Error("data temporarily unavailable");
+    }
+  }
 }
 
 export type GetTradeOffersOptions = {
