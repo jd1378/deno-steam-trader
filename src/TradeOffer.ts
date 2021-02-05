@@ -74,6 +74,25 @@ export class TradeOffer {
     return EConfirmationMethod[this.confirmationMethod];
   }
 
+  isGlitched() {
+    if (!this.id) {
+      // not sent yet
+      return false;
+    }
+
+    if (this.itemsToGive.length + this.itemsToReceive.length == 0) {
+      return true;
+    }
+
+    // Is any item missing its name?
+    // TODO: Since getting the description is going to be optional, this check should be invalid.
+    // if (this.manager._language && this.itemsToGive.concat(this.itemsToReceive).some(item => !item.name)) {
+    //   return true;
+    // }
+
+    return false;
+  }
+
   async update(data: Offer, options?: UpdateOptions) {
     const {
       getDescriptions = false,
