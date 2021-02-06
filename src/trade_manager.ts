@@ -66,10 +66,8 @@ export class TradeManager extends EventEmitter {
     this.steamApi = new SteamApi(apikey);
     this.dataPoller = new DataPoller({
       interval: pollInterval,
-      steamApi: this.steamApi,
       manager: this,
     });
-    
   }
 
   /**
