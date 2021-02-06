@@ -39,10 +39,6 @@ export class TradeManager extends EventEmitter {
     }
   }
 
-  parentalUnlock(familyViewPin: string) {
-    // TODO
-  }
-
   shutdown() {
     clearTimeout(this.pollTimer);
     // TODO
