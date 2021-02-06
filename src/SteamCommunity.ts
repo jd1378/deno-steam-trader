@@ -420,15 +420,6 @@ export class SteamCommunity extends EventEmitter {
     }
   }
 
-  /**
-   * Returns login status and if family lock is active in an array of two.
-   * throws error if call was unsuccesful
-   * 
-   * [true, ....] if you're currently logged in, false otherwise
-   * 
-   * [...., true] if you're currently in family view, [..., false] otherwise. 
-   * If true, you'll need to call parentalUnlock with the correct PIN before you can do anything. 
-   */
   async getLoginStatus(): Promise<{
     isLoggedIn: boolean;
     isFamilyLockActive: boolean | undefined;
