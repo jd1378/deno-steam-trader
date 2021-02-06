@@ -5,13 +5,15 @@ import { DEFAULT_USERAGENT } from "../fetch_utils.ts";
 type ServiceResponse<T extends ServiceRequest> = T["responseStructure"];
 
 export class SteamApi {
-  apikey: string;
+  apikey?: string;
   wrappedFetch;
 
   static baseURL = "https://api.steampowered.com";
 
-  constructor(apikey: string) {
-    this.apikey = apikey;
+  constructor(apikey?: string) {
+    if (apikey) {
+      this.apikey = apikey;
+    }
     this.wrappedFetch = wrapFetchWithHeaders({ userAgent: DEFAULT_USERAGENT });
   }
 
@@ -26,6 +28,9 @@ export class SteamApi {
   async fetch<T extends ServiceRequest>(
     serviceRequest: T,
   ): Promise<ServiceResponse<T>> {
+    if (!this.apikey) {
+      throw new Error("api key not set");
+    }
     // replace booleans in getParams with 1 and 0
     // remove undefined values in getParams
     if (serviceRequest.getParams) {
