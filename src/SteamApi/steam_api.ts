@@ -68,7 +68,10 @@ export class SteamApi {
     }).then((r) => r.json()); // all steam apis respond with json by default (?)
 
     if (typeof serviceRequest.postProcess === "function") {
-      result = await serviceRequest.postProcess(result);
+      const processedResult = await serviceRequest.postProcess(result);
+      if (processedResult !== undefined) {
+        result = processedResult;
+      }
     }
 
     return result;

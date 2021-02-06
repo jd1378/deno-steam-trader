@@ -25,7 +25,11 @@ export abstract class ServiceRequest {
    */
   abstract version: string;
 
-  /** a method that if defined, will be called with JSON-parsed result of the request. can be async. */
+  /** a method that if defined, will be called with JSON-parsed result of the request. can be async.
+   * 
+   * if returns a value that is **not** `undefined`, the service response will be replaced by the returned value.
+   * otherwise original response will be used.
+   */
   postProcess?(response: unknown): unknown | Promise<unknown>;
 
   responseStructure?: Record<string, unknown>;
