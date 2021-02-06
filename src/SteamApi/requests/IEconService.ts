@@ -1,4 +1,5 @@
 // deno-lint-ignore-file camelcase
+import { fastConcat } from "../../utils.ts";
 import { SteamEconItem } from "./../../EconItem.ts";
 
 import { Methods, ServiceRequest } from "./ServiceRequest.ts";
@@ -60,6 +61,17 @@ export type Offer = {
   tradeid?: string | undefined;
 };
 
+function isOfferSuperMalformed(offer: Offer) {
+  return !offer.accountid_other;
+}
+
+function isOfferMalformed(offer: Offer) {
+  const bothSidesEmpty = (offer.items_to_give || []).length === 0 &&
+    (offer.items_to_receive || []).length === 0;
+
+  return isOfferSuperMalformed(offer) || bothSidesEmpty;
+}
+
 /** Decline a trade offer someone sent to us */
 export class DeclineTradeOffer extends IEconServiceRequest {
   method = Methods.POST;
@@ -113,11 +125,7 @@ export class GetTradeOffer extends IEconServiceRequest {
       throw new Error("offer not found");
     }
 
-    const bothSidesEmpty =
-      (body.response.offer.items_to_give || []).length === 0 &&
-      (body.response.offer.items_to_receive || []).length === 0;
-
-    if (!body.response.offer.accountid_other || bothSidesEmpty) {
+    if (isOfferMalformed(body.response.offer)) {
       throw new Error("data temporarily unavailable");
     }
   }
@@ -162,6 +170,29 @@ export class GetTradeOffers extends IEconServiceRequest {
       descriptions?: Array<Omit<SteamEconItem, "id" | "assetid" | "amount">>;
     };
   };
+
+  postProcess(body: {
+    response?: {
+      trade_offers_sent?: Array<Offer>;
+      trade_offers_received?: Array<Offer>;
+      /** only if get_descriptions is true. unreliable */
+      descriptions?: Array<Omit<SteamEconItem, "id" | "assetid" | "amount">>;
+    };
+  }) {
+    if (!body.response) {
+      throw new Error("malformed response");
+    }
+    const allOffers = fastConcat(
+      body.response.trade_offers_received,
+      body.response.trade_offers_sent,
+    );
+    // Make sure at least some offers are well-formed. Apparently some offers can be empty just forever. Because Steam.
+    if (
+      allOffers.every(isOfferMalformed) || allOffers.some(isOfferSuperMalformed)
+    ) {
+      throw new Error("data temporarily unavailable");
+    }
+  }
 }
 
 /** Get counts of pending and new trade offers */
