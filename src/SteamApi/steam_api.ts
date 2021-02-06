@@ -21,6 +21,10 @@ export class SteamApi {
     this.apikey = key;
   }
 
+  hasApiKey() {
+    return !!this.apikey;
+  }
+
   /**
    * fetch a ServiceRequest object
    * @param serviceRequest - see src/SteamApis/ folder for available requests
