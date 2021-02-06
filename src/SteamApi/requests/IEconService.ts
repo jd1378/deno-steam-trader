@@ -66,8 +66,8 @@ function isOfferSuperMalformed(offer: Offer) {
 }
 
 function isOfferMalformed(offer: Offer) {
-  const bothSidesEmpty = (offer.items_to_give || []).length === 0 &&
-    (offer.items_to_receive || []).length === 0;
+  const bothSidesEmpty = (offer.items_to_give?.length || 0) === 0 &&
+    (offer.items_to_receive?.length || 0) === 0;
 
   return isOfferSuperMalformed(offer) || bothSidesEmpty;
 }
