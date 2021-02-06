@@ -2,7 +2,7 @@ import { ServiceRequest } from "./requests/ServiceRequest.ts";
 import { wrapFetchWithHeaders } from "../../deps.ts";
 import { DEFAULT_USERAGENT } from "../fetch_utils.ts";
 
-type ServiceResponse<T extends ServiceRequest> = T["responseStructure"];
+export type ServiceResponse<T extends ServiceRequest> = T["responseStructure"];
 
 export class SteamApi {
   apikey?: string;
