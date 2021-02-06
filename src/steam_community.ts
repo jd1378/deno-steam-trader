@@ -257,7 +257,6 @@ export class SteamCommunity extends EventEmitter {
    * `sessionid`,
    * `steamLoginSecure`,
    * `steamMachineAuth`
-   * @param options 
    */
   async login(options?: LoginOptions) {
     if (this.loggingIn) return;
