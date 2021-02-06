@@ -94,6 +94,15 @@ export class SteamCommunity extends EventEmitter {
     });
   }
 
+  setLoginDefaults(
+    options: Pick<LoginOptions, "username" | "password" | "sharedSecret">,
+  ) {
+    if (!options) return;
+    this.username = options.username || this.username;
+    this.password = options.password || this.password;
+    this.sharedSecret = options.sharedSecret || this.sharedSecret;
+  }
+
   // TODO: save and load cookies properly
   async saveCookies() {
     try {
