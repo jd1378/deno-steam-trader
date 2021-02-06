@@ -1,4 +1,4 @@
-export default class Deferred<T> implements Promise<T> {
+export class Deferred<T> implements Promise<T> {
   // deno-lint-ignore ban-types
   private _resolveSelf!: Function;
   // deno-lint-ignore ban-types
