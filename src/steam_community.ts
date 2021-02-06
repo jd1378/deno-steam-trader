@@ -19,7 +19,6 @@ export type SteamCommunityOptions = {
   username?: string;
   password?: string;
   sharedSecret?: string;
-  debug?: boolean;
 };
 
 export type LoginOptions = {
