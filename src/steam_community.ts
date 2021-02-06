@@ -271,9 +271,7 @@ export class SteamCommunity extends EventEmitter {
       // END OF TODO
 
       if (options) {
-        this.username = options.username || this.username;
-        this.password = options.password || this.password;
-        this.sharedSecret = options.sharedSecret || this.sharedSecret;
+        this.setLoginDefaults(options);
       } else {
         options = {};
       }
