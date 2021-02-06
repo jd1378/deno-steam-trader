@@ -1,3 +1,6 @@
+import { DataPoller } from "./data_poller.ts";
+import { SteamApi } from "./SteamApi/mod.ts";
+import { LoginOptions, SteamCommunity } from "./steam_community.ts";
 import { EventEmitter, getLanguageInfo } from "../deps.ts";
 
 export type TradeManagerOptions = {
@@ -5,18 +8,34 @@ export type TradeManagerOptions = {
   domain?: string;
   /** default: 'en' */
   language?: string;
+  username?: string;
+  password?: string;
+  sharedSecret?: string;
+  apikey?: string;
+  pollInterval?: number;
 };
 
 export class TradeManager extends EventEmitter {
   language: string;
   languageName: string;
   domain: string;
-  private pollTimer: number | undefined;
+  steamCommunity: SteamCommunity;
+  steamApi: SteamApi;
+  dataPoller: DataPoller;
 
   constructor(options: TradeManagerOptions) {
     super();
 
-    const { domain = "localhost", language = "en" } = options;
+    const {
+      domain = "localhost",
+      language = "en",
+      username,
+      password,
+      sharedSecret,
+      apikey,
+      pollInterval,
+    } = options;
+
     this.domain = domain;
     this.language = language;
     this.languageName = "";
@@ -37,10 +56,37 @@ export class TradeManager extends EventEmitter {
         }
       }
     }
+
+    this.steamCommunity = new SteamCommunity({
+      languageName: this.languageName,
+      username,
+      password,
+      sharedSecret,
+    });
+    this.steamApi = new SteamApi(apikey);
+    this.dataPoller = new DataPoller({
+      interval: pollInterval,
+      steamApi: this.steamApi,
+      manager: this,
+    });
+    
   }
 
-  shutdown() {
-    clearTimeout(this.pollTimer);
+  /**
+   * Logins to steam community, get apikey if not set already and set it for steam api use. may throw errors.
+   * 
+   * Only after this function is finished successfully you may start using trade manager
+   */
+  async setup(options: LoginOptions) {
+    await this.steamCommunity.login(options);
+    const apikey = await this.steamCommunity.getWebApiKey(this.domain);
+    if (!apikey) throw new Error("apikey invalid");
+    this.steamApi.setApiKey(apikey);
+    this.dataPoller.start();
+  }
+
+  async shutdown() {
     // TODO
+    await this.dataPoller.stop();
   }
 }
