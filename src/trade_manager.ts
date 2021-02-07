@@ -14,6 +14,11 @@ export type TradeManagerOptions = {
   domain?: string;
   /** default: 'en' */
   language?: string;
+  /** If `true`, all EconItems will have descriptions before passed around.
+   *  
+   *  Setting this to `false` (default) decreases api calls when you don't care about the items' descriptions. 
+   */
+  getDescriptions?: boolean;
   communityOptions?: Omit<SteamCommunityOptions, "languageName">;
   pollingOptions?: Omit<DataPollerOptions, "manager">;
   /** not implemented. do **NOT** use. */
@@ -28,6 +33,7 @@ export class TradeManager extends EventEmitter {
   steamApi: SteamApi;
   dataPoller: DataPoller;
   private steamUser: SteamUser | undefined;
+  private getDescriptions: boolean;
 
   constructor(options: TradeManagerOptions) {
     super();
@@ -38,9 +44,11 @@ export class TradeManager extends EventEmitter {
       communityOptions,
       pollingOptions,
       useProtobuf,
+      getDescriptions = false,
     } = options;
 
     this.domain = domain;
+    this.getDescriptions = getDescriptions;
     this.language = language;
     this.languageName = "";
 
@@ -110,10 +118,12 @@ export class TradeManager extends EventEmitter {
  * also encrypts your cookies to disk using your machine guid (relogin needed when changing systems).
  */
 export async function createTradeManager(options: TradeManagerOptions) {
-  const { communityOptions, pollingOptions, domain, language } = options || {};
+  const {
+    communityOptions,
+    pollingOptions,
+    ...otherOptions
+  } = options || {};
   const tradeManager = new TradeManager({
-    domain,
-    language,
     communityOptions,
     pollingOptions: {
       ...pollingOptions,
@@ -126,6 +136,7 @@ export async function createTradeManager(options: TradeManagerOptions) {
         await Storage.saveData(`poll_data_${steamid64}.json`, data);
       },
     },
+    ...otherOptions,
   });
   await tradeManager.setup();
   return tradeManager;
