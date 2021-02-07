@@ -1,3 +1,5 @@
+import { SteamError } from "./../steam_error.ts";
+import { EResult } from "./../enums/EResult.ts";
 import { ServiceRequest } from "./requests/ServiceRequest.ts";
 import { wrapFetchWithHeaders } from "../../deps.ts";
 import { DEFAULT_USERAGENT } from "../fetch_utils.ts";
@@ -61,19 +63,48 @@ export class SteamApi {
       serviceRequest.body.set("key", this.apikey);
     }
 
-    let result = await this.wrappedFetch(fetchURL, {
+    const response = await this.wrappedFetch(fetchURL, {
       method: serviceRequest.method,
       // no body when sending "GET" requests
       body: serviceRequest.method === "GET" ? undefined : serviceRequest.body,
-    }).then((r) => r.json()); // all steam apis respond with json by default (?)
+    });
+
+    let body = await response.json(); // all steam apis respond with json by default (?)
+
+    if (response.status !== 200) {
+      throw new SteamError("HTTP error " + response.status, {
+        body,
+        eresult: body?.eresult || -1,
+      });
+    }
+
+    let eresult = parseInt(response.headers.get("x-eresult") || "-1", 10);
+    if (
+      eresult === EResult.Fail && body &&
+      (Object.keys(body).length > 1 ||
+        (body.response && Object.keys(body.response).length > 0))
+    ) {
+      // Steam has been known to send fake Fail (2) responses when it actually worked, because of course it has
+      // If we get a 2 but body is there and either body has more than one key or body.response exists and it has content,
+      // ignore the 2
+      eresult = 1;
+    }
+
+    if (eresult !== -1 && eresult !== 1) {
+      throw new SteamError("steam error", { eresult, body });
+    }
+
+    if (!body || typeof body !== "object") {
+      throw new Error("Invalid API response");
+    }
 
     if (typeof serviceRequest.postProcess === "function") {
-      const processedResult = await serviceRequest.postProcess(result);
+      const processedResult = await serviceRequest.postProcess(body);
       if (processedResult !== undefined) {
-        result = processedResult;
+        body = processedResult;
       }
     }
 
-    return result;
+    return body;
   }
 }
