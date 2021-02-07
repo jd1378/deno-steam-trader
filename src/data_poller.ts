@@ -46,7 +46,7 @@ export class DataPoller {
   private savePollData;
   private loadPollData;
   private loadedPollData = false;
-  pollData: PollData | undefined;
+  pollData: PollData;
   interval: number;
 
   constructor(options: DataPollerOptions) {
@@ -61,6 +61,13 @@ export class DataPoller {
       this.loadPollData = loadPollData;
       this.savePollData = savePollData;
     }
+
+    this.pollData = {
+      sent: {},
+      received: {},
+      timestamps: {},
+      offersSince: 0,
+    };
   }
 
   start() {
@@ -118,17 +125,12 @@ export class DataPoller {
           this.loadedPollData = true;
         }
         if (loadedData) {
+          // merge current data before replacing
+          Object.assign(loadedData.received, this.pollData.received);
+          Object.assign(loadedData.sent, this.pollData.sent);
+          Object.assign(loadedData.timestamps, this.pollData.timestamps);
           this.pollData = loadedData;
         }
-      }
-
-      if (!this.pollData) {
-        this.pollData = {
-          sent: {},
-          received: {},
-          timestamps: {},
-          offersSince: 0,
-        };
       }
       // end of checkAndLoadPollData
 
