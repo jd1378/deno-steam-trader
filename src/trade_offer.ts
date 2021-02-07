@@ -320,7 +320,9 @@ export class TradeOffer {
     return this.decline();
   }
 
-  async accept(skipStateUpdate = false) {
+  async accept(
+    skipStateUpdate = false,
+  ): Promise<"accepted" | "pending" | "escrow" | string> {
     if (!this.id) {
       throw new Error("Cannot accept an unsent offer");
     }
