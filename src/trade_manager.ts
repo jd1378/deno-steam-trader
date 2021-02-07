@@ -101,26 +101,11 @@ export async function createTradeManager(options: TradeManagerOptions) {
     communityOptions,
     pollingOptions: {
       ...pollingOptions,
-      loadPollData: async () => {
-        try {
-          return await Storage.loadData("poll_data.json") as PollData;
-        } catch (err) {
-          tradeManager.emit(
-            "debug",
-            "loading poll data failed. error: " + err.message,
-          );
-          return undefined;
-        }
+      loadPollData: () => {
+        return Storage.loadData("poll_data.json") as Promise<PollData>;
       },
       savePollData: async (data) => {
-        try {
-          await Storage.saveData("poll_data.json", data);
-        } catch (err) {
-          tradeManager.emit(
-            "debug",
-            "saving poll data load failed. error: " + err.message,
-          );
-        }
+        await Storage.saveData("poll_data.json", data);
       },
     },
   });
