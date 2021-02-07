@@ -20,15 +20,15 @@ async function mkdir(path: string) {
  * on linux: --allow-read=$PWD --allow-write=$PWD
  */
 export class Storage {
-  static async saveData(path: string, data: string) {
+  static async saveData(path: string, data: unknown) {
     const resolvedPath = getPathInStorage(path);
     const dir = dirname(resolvedPath);
     await mkdir(dir);
-    await Deno.writeTextFile(resolvedPath, data);
+    await Deno.writeTextFile(resolvedPath, JSON.stringify(data));
   }
 
-  static async loadData(path: string): Promise<string> {
+  static async loadData(path: string): Promise<unknown> {
     const data = await Deno.readTextFile(getPathInStorage(path));
-    return data;
+    return JSON.parse(data);
   }
 }
