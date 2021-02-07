@@ -1,8 +1,7 @@
-export { EventEmitter } from "https://deno.land/std@0.85.0/node/events.ts";
-export { randomBytes } from "https://deno.land/std@0.85.0/node/crypto.ts";
-export { Buffer } from "https://deno.land/std@0.85.0/node/buffer.ts";
-export { deferred } from "https://deno.land/std@0.85.0/async/deferred.ts";
-export type { Deferred } from "https://deno.land/std@0.85.0/async/deferred.ts";
+export { EventEmitter } from "https://deno.land/std@0.86.0/node/events.ts";
+export { randomBytes } from "https://deno.land/std@0.86.0/node/crypto.ts";
+export { Buffer } from "https://deno.land/std@0.86.0/node/buffer.ts";
+export { dirname, resolve } from "https://deno.land/std@0.86.0/node/path.ts";
 
 export { getLanguageInfo } from "https://deno.land/x/language@v0.1.0/mod.ts";
 export { SteamID } from "https://deno.land/x/steamid@v1.1.1/mod.ts";
