@@ -39,6 +39,7 @@ export class TradeOffer {
   /** If this offer needs to be confirmed by you, this is a value from EConfirmationMethod */
   confirmationMethod: EConfirmationMethod;
   escrowEndsAt: Date | undefined;
+  countering?: string;
   /** the token used to create an offer. usually available in user's trade url */
   private _token: string | undefined;
 
