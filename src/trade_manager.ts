@@ -1,6 +1,10 @@
-import { DataPoller } from "./data_poller.ts";
+import { DataPoller, DataPollerOptions } from "./data_poller.ts";
 import { SteamApi } from "./SteamApi/mod.ts";
-import { LoginOptions, SteamCommunity } from "./steam_community.ts";
+import {
+  LoginOptions,
+  SteamCommunity,
+  SteamCommunityOptions,
+} from "./steam_community.ts";
 import { EventEmitter, getLanguageInfo } from "../deps.ts";
 
 export type TradeManagerOptions = {
@@ -8,11 +12,8 @@ export type TradeManagerOptions = {
   domain?: string;
   /** default: 'en' */
   language?: string;
-  username?: string;
-  password?: string;
-  sharedSecret?: string;
-  apikey?: string;
-  pollInterval?: number;
+  communityOptions?: Omit<SteamCommunityOptions, "languageName">;
+  pollingOptions?: Omit<DataPollerOptions, "manager">;
 };
 
 export class TradeManager extends EventEmitter {
@@ -29,11 +30,8 @@ export class TradeManager extends EventEmitter {
     const {
       domain = "localhost",
       language = "en",
-      username,
-      password,
-      sharedSecret,
-      apikey,
-      pollInterval,
+      communityOptions,
+      pollingOptions,
     } = options;
 
     this.domain = domain;
@@ -59,14 +57,12 @@ export class TradeManager extends EventEmitter {
 
     this.steamCommunity = new SteamCommunity({
       languageName: this.languageName,
-      username,
-      password,
-      sharedSecret,
+      ...communityOptions,
     });
-    this.steamApi = new SteamApi(apikey);
+    this.steamApi = new SteamApi();
     this.dataPoller = new DataPoller({
-      interval: pollInterval,
       manager: this,
+      ...pollingOptions,
     });
   }
 
@@ -75,7 +71,7 @@ export class TradeManager extends EventEmitter {
    * 
    * Only after this function is finished successfully you may start using trade manager
    */
-  async setup(options: LoginOptions) {
+  async setup(options?: LoginOptions) {
     await this.steamCommunity.login(options);
     const apikey = await this.steamCommunity.getWebApiKey(this.domain);
     if (!apikey) throw new Error("apikey invalid");
@@ -87,4 +83,17 @@ export class TradeManager extends EventEmitter {
     // TODO
     await this.dataPoller.stop();
   }
+}
+
+/** 
+ * Use this helper function to create TradeManager and use some defaults. you must provide username, password and sharedSecret when using this.
+ * otherwise you have to construct a trade manager object and call `manager.setup()` function yourself to start using it.
+ * 
+ * using this function automatically saves/loads poll data to/from the disk.
+ * also encrypts your cookies to disk using your machine guid (relogin needed when changing systems).
+ */
+export async function createTradeManager(options: TradeManagerOptions) {
+  const tradeManager = new TradeManager(options);
+  await tradeManager.setup();
+  return tradeManager;
 }
