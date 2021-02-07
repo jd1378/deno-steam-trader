@@ -1,12 +1,17 @@
 import { TradeManager } from "./trade_manager.ts";
-import { SteamError } from "./steam_error.ts";
+import { SteamError, throwIfHasError } from "./steam_error.ts";
 import { SteamApi } from "./SteamApi/mod.ts";
-import { Offer } from "./SteamApi/requests/IEconService.ts";
+import {
+  CancelTradeOffer,
+  DeclineTradeOffer,
+  GetTradeOffer,
+  Offer,
+} from "./SteamApi/requests/IEconService.ts";
 import { EconItem } from "./EconItem.ts";
 import { SteamID } from "../deps.ts";
 import { EConfirmationMethod } from "./enums/EConfirmationMethod.ts";
 import { ETradeOfferState } from "./enums/ETradeOfferState.ts";
-import { EResult } from "./enums/EResult.ts";
+import { ServiceRequest } from "./SteamApi/requests/ServiceRequest.ts";
 
 export class TradeOffer {
   manager: TradeManager;
@@ -134,7 +139,7 @@ export class TradeOffer {
   }
 
   /** do not use this method to update an offer. it is used internally. */
-  async _update(data: Offer, options?: UpdateOptions) {
+  private async _update(data: Offer, options?: UpdateOptions) {
     const {
       getDescriptions = false,
       steamApi = undefined,
@@ -249,51 +254,7 @@ export class TradeOffer {
       throw new Error("HTTP error " + response.status);
     }
 
-    if (!body) {
-      throw new Error("Malformed JSON response");
-    }
-
-    if (body && body.strError) {
-      const error = new SteamError(body.strError);
-
-      const match = body.strError.match(/\((\d+)\)$/);
-
-      if (match) {
-        error.eresult = parseInt(match[1], 10);
-      }
-
-      if (
-        body.strError.match(
-          /You cannot trade with .* because they have a trade ban./,
-        )
-      ) {
-        error.cause = "TradeBan";
-      }
-
-      if (body.strError.match(/You have logged in from a new device/)) {
-        error.cause = "NewDevice";
-      }
-
-      if (
-        body.strError.match(
-          /is not available to trade\. More information will be shown to/,
-        )
-      ) {
-        error.cause = "TargetCannotTrade";
-      }
-
-      if (body.strError.match(/sent too many trade offers/)) {
-        error.cause = "OfferLimitExceeded";
-        error.eresult = EResult.LimitExceeded;
-      }
-
-      if (body.strError.match(/unable to contact the game's item server/)) {
-        error.cause = "ItemServerUnavailable";
-        error.eresult = EResult.ServiceUnavailable;
-      }
-
-      throw error;
-    }
+    throwIfHasError(body);
 
     if (body && body.tradeofferid) {
       this.id = body.tradeofferid as string;
@@ -322,6 +283,144 @@ export class TradeOffer {
       return ETradeOfferState.Active;
     } else {
       throw new Error("Unknown response");
+    }
+  }
+
+  async decline() {
+    if (!this.id) {
+      throw new Error("Cannot cancel or decline an unsent offer");
+    }
+
+    if (
+      this.state !== ETradeOfferState.Active &&
+      this.state !== ETradeOfferState.CreatedNeedsConfirmation
+    ) {
+      throw new Error(
+        `Offer #${this.id} is not active, so it may not be cancelled or declined`,
+      );
+    }
+
+    let serviceRequest: ServiceRequest;
+    if (this.isOurOffer) {
+      serviceRequest = new CancelTradeOffer(this.id);
+    } else {
+      serviceRequest = new DeclineTradeOffer(this.id);
+    }
+    await this.manager.steamApi.fetch(serviceRequest);
+
+    this.state = this.isOurOffer
+      ? ETradeOfferState.Canceled
+      : ETradeOfferState.Declined;
+    this.updated = new Date();
+    this.manager.dataPoller.doPoll();
+  }
+
+  /** alias for decline() */
+  cancel() {
+    return this.decline();
+  }
+
+  async accept(skipStateUpdate = false) {
+    if (!this.id) {
+      throw new Error("Cannot accept an unsent offer");
+    }
+
+    if (this.state !== ETradeOfferState.Active) {
+      throw new Error(
+        `Offer #${this.id} is not active, so it may not be accepted`,
+      );
+    }
+
+    if (this.isOurOffer) {
+      throw new Error(`Cannot accept our own offer #${this.id}`);
+    }
+
+    const response = await this.manager.steamCommunity.fetch(
+      `https://steamcommunity.com/tradeoffer/${this.id}/accept`,
+      {
+        headers: {
+          "Referer": `https://steamcommunity.com/tradeoffer/${this.id}/`,
+        },
+        form: {
+          "sessionid": this.manager.steamCommunity.getSessionID(),
+          "serverid": "1",
+          "tradeofferid": this.id,
+          "partner": this.partner.toString(),
+          "captcha": "",
+        },
+      },
+    );
+
+    const body = await response.json();
+
+    if (response.status !== 200) {
+      if (response.status == 403) {
+        // TODO
+        // SESSION EXPIRED:
+        // this.manager.steamCommunity.login();
+        throw new Error("Not Logged In");
+      } else {
+        throw new SteamError("HTTP error " + response.status, {
+          eresult: body?.eresult || -1,
+          body: body,
+        });
+      }
+    }
+
+    throwIfHasError(body);
+
+    this.manager.dataPoller.doPoll();
+
+    if (body.tradeid) {
+      this.tradeID = body.tradeid;
+    }
+
+    if (body?.needs_email_confirmation) {
+      this.confirmationMethod = EConfirmationMethod.Email;
+    }
+
+    if (body?.needs_mobile_confirmation) {
+      this.confirmationMethod = EConfirmationMethod.MobileApp;
+    }
+
+    if (!skipStateUpdate) {
+      await this.update();
+
+      if (
+        this.confirmationMethod !== undefined &&
+        this.confirmationMethod !== EConfirmationMethod.None
+      ) {
+        return "pending";
+        // deno-lint-ignore ban-ts-comment
+        //@ts-ignore
+      } else if (this.state === ETradeOfferState.InEscrow) {
+        return "escrow";
+        // deno-lint-ignore ban-ts-comment
+        //@ts-ignore
+      } else if (this.state === ETradeOfferState.Accepted) {
+        return "accepted";
+      } else {
+        return "unknown state " + this.state;
+      }
+    }
+
+    if (body?.needs_email_confirmation || body?.needs_mobile_confirmation) {
+      return "pending";
+    } else {
+      return "accepted";
+    }
+  }
+
+  async update() {
+    if (!this.id) throw new Error("Cannot update an unsent offer");
+    try {
+      const body = await this.manager.steamApi.fetch(
+        new GetTradeOffer(this.id),
+      );
+      // the check is done inside the Service Request.
+      this._update(body!.response!.offer!);
+    } catch (err) {
+      throw new Error("Cannot load new trade data: " + err.message);
     }
   }
 }
