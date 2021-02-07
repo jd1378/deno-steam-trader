@@ -108,3 +108,4 @@ test*.ts
 *.bin
 trade*.json
 item*.json
+storage
