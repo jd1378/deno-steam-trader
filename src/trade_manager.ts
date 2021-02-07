@@ -1,5 +1,3 @@
-import { SteamError } from "./steam_error.ts";
-import { EconItem } from "./EconItem.ts";
 import { DataPoller, DataPollerOptions, PollData } from "./data_poller.ts";
 import { SteamApi } from "./SteamApi/mod.ts";
 import {
@@ -12,9 +10,6 @@ import { Storage } from "./storage.ts";
 import { SteamUser } from "./steam_user.ts";
 import { SteamID } from "https://deno.land/x/steamid@v1.1.1/mod.ts";
 import { TradeOffer } from "./trade_offer.ts";
-import { EResult } from "./enums/EResult.ts";
-import { ETradeOfferState } from "./enums/ETradeOfferState.ts";
-import { EConfirmationMethod } from "./enums/EConfirmationMethod.ts";
 
 export type TradeManagerOptions = {
   /** default: 'localhost' */
@@ -143,158 +138,10 @@ export class TradeManager extends EventEmitter {
       throw new Error("Invalid partner ID");
     }
 
-    const offer = new TradeOffer(partner, token);
+    const offer = new TradeOffer(this, partner, token);
     offer.isOurOffer = true;
     offer.fromRealTimeTrade = false;
     return offer;
-  }
-
-  async sendTradeOffer(offer: TradeOffer): Promise<ETradeOfferState> {
-    if (offer.id) {
-      throw new Error("This offer has already been sent");
-    }
-
-    if (offer.itemsToGive.length + offer.itemsToReceive.length == 0) {
-      throw new Error("Cannot send an empty trade offer");
-    }
-
-    // TODO make sure trade offer add item requires these 4 params.
-    function itemMapper(item: EconItem) {
-      return {
-        "appid": item.appid,
-        "contextid": item.contextid,
-        "amount": item.amount || 1,
-        "assetid": item.assetid,
-      };
-    }
-
-    const offerdata = {
-      "newversion": true,
-      "version": offer.itemsToGive.length + offer.itemsToReceive.length + 1,
-      "me": {
-        "assets": offer.itemsToGive.map(itemMapper),
-        "currency": [], // TODO unknown
-        "ready": false,
-      },
-      "them": {
-        "assets": offer.itemsToReceive.map(itemMapper),
-        "currency": [],
-        "ready": false,
-      },
-    };
-
-    const offerCreateParams: Record<string, string> = {};
-
-    if (offer.token) {
-      offerCreateParams.trade_offer_access_token = offer.token;
-    }
-
-    const response = await this.steamCommunity.fetch(
-      "https://steamcommunity.com/tradeoffer/new/send",
-      {
-        headers: {
-          "referer": `https://steamcommunity.com/tradeoffer/${(offer.id ||
-            "new")}/?partner=${offer.partner.accountid}` +
-            (offer.token ? "&token=" + offer.token : ""),
-        },
-        form: {
-          "sessionid": this.steamCommunity.getSessionID(),
-          "serverid": "1",
-          "partner": offer.partner.toString(),
-          "tradeoffermessage": offer.message || "",
-          "json_tradeoffer": JSON.stringify(offerdata),
-          "captcha": "",
-          "trade_offer_create_params": JSON.stringify(offerCreateParams),
-          "tradeofferid_countered": offer.countering ? offer.countering : "",
-        },
-      },
-    );
-
-    const body = await response.json();
-
-    if (response.status !== 200) {
-      if (response.status == 401) {
-        // this.steamCommunity.login();
-        throw new Error("Not Logged In");
-      }
-
-      throw new Error("HTTP error " + response.status);
-    }
-
-    if (!body) {
-      throw new Error("Malformed JSON response");
-    }
-
-    if (body && body.strError) {
-      const error = new SteamError(body.strError);
-
-      const match = body.strError.match(/\((\d+)\)$/);
-
-      if (match) {
-        error.eresult = parseInt(match[1], 10);
-      }
-
-      if (
-        body.strError.match(
-          /You cannot trade with .* because they have a trade ban./,
-        )
-      ) {
-        error.cause = "TradeBan";
-      }
-
-      if (body.strError.match(/You have logged in from a new device/)) {
-        error.cause = "NewDevice";
-      }
-
-      if (
-        body.strError.match(
-          /is not available to trade\. More information will be shown to/,
-        )
-      ) {
-        error.cause = "TargetCannotTrade";
-      }
-
-      if (body.strError.match(/sent too many trade offers/)) {
-        error.cause = "OfferLimitExceeded";
-        error.eresult = EResult.LimitExceeded;
-      }
-
-      if (body.strError.match(/unable to contact the game's item server/)) {
-        error.cause = "ItemServerUnavailable";
-        error.eresult = EResult.ServiceUnavailable;
-      }
-
-      throw error;
-    }
-
-    if (body && body.tradeofferid) {
-      offer.id = body.tradeofferid as string;
-      offer.state = ETradeOfferState.Active;
-      offer.created = new Date();
-      offer.updated = new Date();
-      offer.expires = new Date(Date.now() + 1209600000); // 2 weeks
-
-      // poll data will be saved on next poll if saving method is defined and polling is started
-      this.dataPoller.pollData.sent[offer.id] = offer.state;
-    }
-
-    if (body && body.needs_email_confirmation) {
-      offer.state = ETradeOfferState.CreatedNeedsConfirmation;
-      offer.confirmationMethod = EConfirmationMethod.Email;
-    }
-
-    if (body && body.needs_mobile_confirmation) {
-      offer.state = ETradeOfferState.CreatedNeedsConfirmation;
-      offer.confirmationMethod = EConfirmationMethod.MobileApp;
-    }
-
-    if (body && offer.state == ETradeOfferState.CreatedNeedsConfirmation) {
-      return ETradeOfferState.CreatedNeedsConfirmation;
-    } else if (body && body.tradeofferid) {
-      return ETradeOfferState.Active;
-    } else {
-      throw new Error("Unknown response");
-    }
   }
 }
 
