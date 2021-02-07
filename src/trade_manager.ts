@@ -117,11 +117,13 @@ export async function createTradeManager(options: TradeManagerOptions) {
     communityOptions,
     pollingOptions: {
       ...pollingOptions,
-      loadPollData: () => {
-        return Storage.loadData("poll_data.json") as Promise<PollData>;
+      loadPollData: (steamid64) => {
+        return Storage.loadData(`poll_data_${steamid64}.json`) as Promise<
+          PollData
+        >;
       },
-      savePollData: async (data) => {
-        await Storage.saveData("poll_data.json", data);
+      savePollData: async (data, steamid64) => {
+        await Storage.saveData(`poll_data_${steamid64}.json`, data);
       },
     },
   });

@@ -15,11 +15,11 @@ export type DataPollerOptions = {
   interval?: number;
   manager: TradeManager;
   /** will be used to save and load poll data. **both** save and load functions must be defined **together**. */
-  savePollData?: (pollData: PollData) => Promise<void> | void;
+  savePollData?: (pollData: PollData, steamid?: string) => Promise<void> | void;
   /** will be used to save and load poll data. **both** save and load functions must be defined **together**. */
   loadPollData?:
-    | (() => Promise<PollData | undefined>)
-    | (() => PollData | undefined);
+    | ((steamid?: string) => Promise<PollData | undefined>)
+    | ((steamid?: string) => PollData | undefined);
 };
 
 export type PollData = {
@@ -93,7 +93,12 @@ export class DataPoller {
     if (!this.loadedPollData && this.loadPollData) {
       let loadedData;
       try {
-        loadedData = await this.loadPollData();
+        if (!this.manager.steamCommunity.steamID) {
+          throw new Error("steam community steamid is not set");
+        }
+        loadedData = await this.loadPollData(
+          this.manager.steamCommunity.steamID.toString(),
+        );
       } catch (err) {
         this.manager.emit(
           "debug",
@@ -157,7 +162,13 @@ export class DataPoller {
         this.manager.emit("pollSuccess");
         if (this.savePollData) {
           try {
-            await this.savePollData(this.pollData);
+            if (!this.manager.steamCommunity.steamID) {
+              throw new Error("steam community steamid is not set");
+            }
+            await this.savePollData(
+              this.pollData,
+              this.manager.steamCommunity.steamID.toString(),
+            );
           } catch (err) {
             this.manager.emit(
               "debug",
