@@ -6,7 +6,7 @@ export type ServiceResponse<T extends ServiceRequest> = T["responseStructure"];
 
 export class SteamApi {
   apikey?: string;
-  wrappedFetch;
+  private wrappedFetch;
 
   static baseURL = "https://api.steampowered.com";
 
