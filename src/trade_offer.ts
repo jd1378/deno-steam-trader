@@ -7,7 +7,7 @@ import {
   GetTradeOffer,
   Offer,
 } from "./SteamApi/requests/IEconService.ts";
-import { EconItem } from "./EconItem.ts";
+import { EconItem, FromOfferItemOptions } from "./EconItem.ts";
 import { SteamID } from "../deps.ts";
 import { EConfirmationMethod } from "./enums/EConfirmationMethod.ts";
 import { ETradeOfferState } from "./enums/ETradeOfferState.ts";
@@ -139,22 +139,23 @@ export class TradeOffer {
   }
 
   /** do not use this method to update an offer. it is used internally. */
-  private async _update(data: Offer, options?: UpdateOptions) {
-    const {
-      getDescriptions = false,
-      steamApi = undefined,
-      language = undefined,
-    } = options ? options : {};
+  private async _update(data: Offer) {
     this.id = data.tradeofferid.toString();
     this.message = data.message;
     this.state = data.trade_offer_state;
+    const fromOfferItemOptions: FromOfferItemOptions = {
+      getDescriptions: this.manager.getDescriptions,
+      language: this.manager.languageName,
+      steamApi: this.manager.steamApi,
+    };
+
     this.itemsToGive = await EconItem.fromList(
       data.items_to_give || [],
-      getDescriptions && steamApi && language ? options : undefined,
+      fromOfferItemOptions,
     );
     this.itemsToReceive = await EconItem.fromList(
       data.items_to_receive || [],
-      getDescriptions && steamApi && language ? options : undefined,
+      fromOfferItemOptions,
     );
 
     this.isOurOffer = data.is_our_offer;

@@ -35,7 +35,7 @@ export class TradeManager extends EventEmitter {
   steamApi: SteamApi;
   dataPoller: DataPoller;
   private steamUser: SteamUser | undefined;
-  private getDescriptions: boolean;
+  getDescriptions: boolean;
 
   constructor(options: TradeManagerOptions) {
     super();
