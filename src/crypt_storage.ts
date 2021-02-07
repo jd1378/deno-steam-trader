@@ -16,18 +16,20 @@ function normalizeKey(key: string) {
 /**
  * For using this class you need to give proper permissions to deno. It encrypts your data with this machine's id.
  * 
+ * Automatically calls JSON.stringify on your data on save and JSON.parse on load.
+ * 
  * on windows: --allow-env, --allow-run
  * 
  * on linux: --allow-read=/var/lib/dbus/machine-id,/etc/machine-id
  */
 export class CryptStorage {
-  static async saveData(path: string | URL, data: string) {
+  static async saveData(path: string | URL, data: unknown) {
     const key = normalizeKey(await getMachineId());
     const aes = new AES(key);
-    await Deno.writeFile(path, await aes.encrypt(data));
+    await Deno.writeFile(path, await aes.encrypt(JSON.stringify(data)));
   }
 
-  static async loadData(path: string | URL): Promise<string> {
+  static async loadData(path: string | URL): Promise<unknown> {
     const fileData = await Deno.readFile(path);
 
     const key = normalizeKey(await getMachineId());
@@ -36,6 +38,6 @@ export class CryptStorage {
     const data = Buffer.from(await aes.decrypt(fileData)).toString(
       "utf-8",
     );
-    return data;
+    return JSON.parse(data);
   }
 }

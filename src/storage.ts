@@ -15,6 +15,8 @@ async function mkdir(path: string) {
 /**
  * For using this class you need to give proper permissions to deno.
  * 
+ * Automatically calls JSON.stringify on your data on save and JSON.parse on load.
+ * 
  * on windows: --allow-read=%cd% --allow-write=%cd%
  * 
  * on linux: --allow-read=$PWD --allow-write=$PWD
