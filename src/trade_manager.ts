@@ -1,4 +1,4 @@
-import { DataPoller, DataPollerOptions } from "./data_poller.ts";
+import { DataPoller, DataPollerOptions, PollData } from "./data_poller.ts";
 import { SteamApi } from "./SteamApi/mod.ts";
 import {
   LoginOptions,
@@ -6,6 +6,7 @@ import {
   SteamCommunityOptions,
 } from "./steam_community.ts";
 import { EventEmitter, getLanguageInfo } from "../deps.ts";
+import { Storage } from "./storage.ts";
 
 export type TradeManagerOptions = {
   /** default: 'localhost' */
@@ -93,7 +94,36 @@ export class TradeManager extends EventEmitter {
  * also encrypts your cookies to disk using your machine guid (relogin needed when changing systems).
  */
 export async function createTradeManager(options: TradeManagerOptions) {
-  const tradeManager = new TradeManager(options);
+  const { communityOptions, pollingOptions, domain, language } = options || {};
+  const tradeManager = new TradeManager({
+    domain,
+    language,
+    communityOptions,
+    pollingOptions: {
+      ...pollingOptions,
+      loadPollData: async () => {
+        try {
+          return await Storage.loadData("poll_data.json") as PollData;
+        } catch (err) {
+          tradeManager.emit(
+            "debug",
+            "loading poll data failed. error: " + err.message,
+          );
+          return undefined;
+        }
+      },
+      savePollData: async (data) => {
+        try {
+          await Storage.saveData("poll_data.json", data);
+        } catch (err) {
+          tradeManager.emit(
+            "debug",
+            "saving poll data load failed. error: " + err.message,
+          );
+        }
+      },
+    },
+  });
   await tradeManager.setup();
   return tradeManager;
 }
