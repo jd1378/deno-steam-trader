@@ -7,6 +7,7 @@ import {
 } from "./steam_community.ts";
 import { EventEmitter, getLanguageInfo } from "../deps.ts";
 import { Storage } from "./storage.ts";
+import { SteamUser } from "./steam_user.ts";
 
 export type TradeManagerOptions = {
   /** default: 'localhost' */
@@ -15,6 +16,8 @@ export type TradeManagerOptions = {
   language?: string;
   communityOptions?: Omit<SteamCommunityOptions, "languageName">;
   pollingOptions?: Omit<DataPollerOptions, "manager">;
+  /** not implemented. do **NOT** use. */
+  useProtobuf?: boolean;
 };
 
 export class TradeManager extends EventEmitter {
@@ -24,6 +27,7 @@ export class TradeManager extends EventEmitter {
   steamCommunity: SteamCommunity;
   steamApi: SteamApi;
   dataPoller: DataPoller;
+  private steamUser: SteamUser | undefined;
 
   constructor(options: TradeManagerOptions) {
     super();
@@ -33,6 +37,7 @@ export class TradeManager extends EventEmitter {
       language = "en",
       communityOptions,
       pollingOptions,
+      useProtobuf,
     } = options;
 
     this.domain = domain;
@@ -65,6 +70,17 @@ export class TradeManager extends EventEmitter {
       manager: this,
       ...pollingOptions,
     });
+
+    if (useProtobuf) {
+      // TODO
+      this.steamUser = new SteamUser();
+      this.steamUser.on("tradeOffers", () => {
+        this.dataPoller.doPoll();
+      });
+      this.steamUser.on("newItems", () => {
+        this.dataPoller.doPoll();
+      });
+    }
   }
 
   /**
