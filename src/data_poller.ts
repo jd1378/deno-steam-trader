@@ -89,39 +89,6 @@ export class DataPoller {
     this.polling = true;
     this.defferedPoll = new Deferred();
 
-    // checkAndLoadPollData
-    if (!this.loadedPollData && this.loadPollData) {
-      let loadedData;
-      try {
-        if (!this.manager.steamCommunity.steamID) {
-          throw new Error("steam community steamid is not set");
-        }
-        loadedData = await this.loadPollData(
-          this.manager.steamCommunity.steamID.toString(),
-        );
-      } catch (err) {
-        this.manager.emit(
-          "debug",
-          "loading poll data failed. error: " + err.message,
-        );
-      } finally {
-        this.loadedPollData = true;
-      }
-      if (loadedData) {
-        this.pollData = loadedData;
-      }
-    }
-
-    if (!this.pollData) {
-      this.pollData = {
-        sent: {},
-        received: {},
-        timestamps: {},
-        offersSince: 0,
-      };
-    }
-    // end of checkAndLoadPollData
-
     const timeSinceLastPoll = Date.now() - this.lastPoll;
     const doingPollTooFast = timeSinceLastPoll < miminumPollInterval;
     try {
@@ -129,6 +96,41 @@ export class DataPoller {
       if (!this.steamApi.hasApiKey()) {
         return;
       }
+
+      // don't poll if we are not logged in to steam community
+      if (!this.manager.steamCommunity.steamID) {
+        return;
+      }
+
+      // checkAndLoadPollData
+      if (!this.loadedPollData && this.loadPollData) {
+        let loadedData;
+        try {
+          loadedData = await this.loadPollData(
+            this.manager.steamCommunity.steamID.toString(),
+          );
+        } catch (err) {
+          this.manager.emit(
+            "debug",
+            "loading poll data failed. error: " + err.message,
+          );
+        } finally {
+          this.loadedPollData = true;
+        }
+        if (loadedData) {
+          this.pollData = loadedData;
+        }
+      }
+
+      if (!this.pollData) {
+        this.pollData = {
+          sent: {},
+          received: {},
+          timestamps: {},
+          offersSince: 0,
+        };
+      }
+      // end of checkAndLoadPollData
 
       // never allow faster than 1 second
       if (doingPollTooFast) {
