@@ -174,13 +174,12 @@ export class TradeOffer {
   static async from(
     manager: TradeManager,
     data: Offer,
-    options?: UpdateOptions,
   ) {
     const offer = new TradeOffer(
       manager,
       new SteamID("[U:1:" + data.accountid_other + "]"),
     );
-    await offer._update(data, options);
+    await offer._update(data);
   }
 
   async send(): Promise<ETradeOfferState> {
