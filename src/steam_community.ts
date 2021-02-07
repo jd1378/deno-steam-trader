@@ -61,7 +61,7 @@ export type LoginAttemptData = {
 export class SteamCommunity extends EventEmitter {
   languageName: string;
   private cookieJar: CookieJar;
-  private fetch;
+  public fetch;
   private lastLoginAttempt: LoginAttemptData;
   steamID: SteamID | undefined;
   private username: string | undefined;
