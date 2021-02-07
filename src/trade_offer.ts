@@ -426,9 +426,3 @@ export class TradeOffer {
     }
   }
 }
-
-type UpdateOptions = {
-  getDescriptions: boolean;
-  steamApi: SteamApi;
-  language: string;
-};
