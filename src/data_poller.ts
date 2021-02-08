@@ -101,7 +101,7 @@ export class DataPoller {
     }
   }
 
-  deleteOldProps(offerid: string) {
+  private deleteOldProps(offerid: string) {
     delete this.pollData.sent[offerid];
     delete this.pollData.received[offerid];
     delete this.pollData.cancelTimes[offerid];
