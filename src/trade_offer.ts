@@ -6,7 +6,11 @@ import {
   GetTradeOffer,
   Offer,
 } from "./SteamApi/requests/IEconService.ts";
-import { EconItem, FromOfferItemOptions } from "./EconItem.ts";
+import {
+  EconItem,
+  FromOfferItemOptions,
+  RequiredItemProps,
+} from "./EconItem.ts";
 import { SteamID } from "../deps.ts";
 import { EConfirmationMethod } from "./enums/EConfirmationMethod.ts";
 import { ETradeOfferState } from "./enums/ETradeOfferState.ts";
@@ -116,13 +120,9 @@ export class TradeOffer {
     return EConfirmationMethod[this.confirmationMethod];
   }
 
-  containsItem(item: EconItem) {
-    function containPredicate(_item: EconItem) {
-      return _item.appid === item.appid && _item.assetid === item.assetid &&
-        _item.contextid === item.contextid;
-    }
-    return this.itemsToGive.some(containPredicate) ||
-      this.itemsToReceive.some(containPredicate);
+  containsItem(item: EconItem | RequiredItemProps) {
+    return this.itemsToGive.some((_item) => _item.equals(item)) ||
+      this.itemsToReceive.some((_item) => _item.equals(item));
   }
 
   setMessage(msg: string) {
@@ -199,6 +199,15 @@ export class TradeOffer {
       : undefined;
   }
 
+  private itemMapper(item: EconItem) {
+    return {
+      "appid": item.appid,
+      "contextid": item.contextid,
+      "amount": item.amount || 1,
+      "assetid": item.assetid,
+    };
+  }
+
   async send(): Promise<ETradeOfferState> {
     if (this.id) {
       throw new Error("This offer has already been sent");
@@ -212,26 +221,16 @@ export class TradeOffer {
       throw new Error("Cannot send an empty trade offer");
     }
 
-    // TODO make sure trade offer add item requires these 4 params.
-    function itemMapper(item: EconItem) {
-      return {
-        "appid": item.appid,
-        "contextid": item.contextid,
-        "amount": item.amount || 1,
-        "assetid": item.assetid,
-      };
-    }
-
     const offerdata = {
       "newversion": true,
       "version": this.itemsToGive.length + this.itemsToReceive.length + 1,
       "me": {
-        "assets": this.itemsToGive.map(itemMapper),
+        "assets": this.itemsToGive.map(this.itemMapper),
         "currency": [], // TODO unknown
         "ready": false,
       },
       "them": {
-        "assets": this.itemsToReceive.map(itemMapper),
+        "assets": this.itemsToReceive.map(this.itemMapper),
         "currency": [],
         "ready": false,
       },
@@ -466,6 +465,90 @@ export class TradeOffer {
     } catch (err) {
       throw new Error("Cannot load new trade data: " + err.message);
     }
+  }
+
+  private offerItemChangeGuard(
+    item?: RequiredItemProps | EconItem,
+    adding = false,
+  ) {
+    if (this.id) {
+      throw new Error("Cannot add/remove item to an already-sent offer");
+    }
+    if (adding) {
+      if (!item) {
+        throw new Error("Cannot add undefined item to offer");
+      }
+      if (
+        typeof item.appid === "undefined" ||
+        typeof item.contextid === "undefined" ||
+        typeof item.assetid === "undefined"
+      ) {
+        throw new Error("Missing appid, contextid, or assetid parameter");
+      }
+    }
+  }
+
+  addMyItem(
+    item: RequiredItemProps | EconItem,
+  ) {
+    this.offerItemChangeGuard(item, true);
+    if (item instanceof EconItem) {
+      this.itemsToGive.push(item);
+    } else {
+      this.itemsToGive.push(new EconItem(item));
+    }
+  }
+
+  addMyItems(
+    items: Array<RequiredItemProps | EconItem>,
+  ) {
+    items.forEach((item) => this.addMyItem(item));
+  }
+
+  removeMyItem(item: RequiredItemProps | EconItem) {
+    this.offerItemChangeGuard(item);
+    const indexOfItem = this.itemsToGive.findIndex((_item) =>
+      _item.equals(item)
+    );
+    if (indexOfItem !== -1) {
+      this.itemsToGive.splice(indexOfItem, 1);
+    }
+  }
+
+  removeMyItems(items: Array<RequiredItemProps | EconItem>) {
+    items.forEach((item) => this.removeMyItem(item));
+  }
+
+  addTheirItem(
+    item: RequiredItemProps | EconItem,
+  ) {
+    this.offerItemChangeGuard(item, true);
+    if (item instanceof EconItem) {
+      this.itemsToReceive.push(item);
+    } else {
+      this.itemsToReceive.push(new EconItem(item));
+    }
+  }
+
+  addTheirItems(
+    items: Array<RequiredItemProps | EconItem>,
+  ) {
+    items.forEach((item) => this.addTheirItem(item));
+  }
+
+  removeTheirItem(item: RequiredItemProps | EconItem) {
+    this.offerItemChangeGuard(item);
+    const indexOfItem = this.itemsToReceive.findIndex((_item) =>
+      _item.equals(item)
+    );
+    if (indexOfItem !== -1) {
+      this.itemsToReceive.splice(indexOfItem, 1);
+    }
+  }
+
+  removeTheirItems(items: Array<RequiredItemProps | EconItem>) {
+    items.forEach((item) => this.removeTheirItem(item));
+    this.removeTheirItem({ appid: 313, contextid: "2", assetid: "1213" });
   }
 
   static async from(

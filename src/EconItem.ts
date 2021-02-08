@@ -49,7 +49,7 @@ export type SteamEconItem = {
   /** same as asset id */
   id?: string | number;
   assetid?: string | number;
-  classid: string;
+  classid?: string;
   currencyid?: string | number;
   name?: string;
   market_name?: string;
@@ -57,7 +57,7 @@ export type SteamEconItem = {
   appid?: string | number;
   icon_url?: string;
   icon_url_large?: string;
-  contextid: string;
+  contextid: string | number;
   instanceid?: string;
   currency?: string | number;
   is_currency?: string | number;
@@ -90,6 +90,10 @@ export type EconItemTag = {
   /** can be an empty string */
   color: string;
 };
+
+export type RequiredItemProps = Required<
+  Pick<EconItem, "appid" | "contextid" | "assetid">
+>;
 
 const tradeBanRegex = /(?:Tradable After|Cooldown Until:)\s*(.*)$/;
 
@@ -353,7 +357,10 @@ export class EconItem {
     return items;
   }
 
-  static equals(a: EconItem, b: EconItem) {
+  static equals(
+    a: EconItem | RequiredItemProps,
+    b: EconItem | RequiredItemProps,
+  ) {
     return (
       a.appid == b.appid &&
       a.contextid == b.contextid &&
@@ -361,7 +368,7 @@ export class EconItem {
     );
   }
 
-  equals(item: EconItem) {
+  equals(item: EconItem | RequiredItemProps) {
     return EconItem.equals(this, item);
   }
 }
