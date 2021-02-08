@@ -1,7 +1,7 @@
 // deno-lint-ignore-file camelcase
 import type { ETradeStatus } from "../../enums/ETradeStatus.ts";
 import { fastConcat } from "../../utils.ts";
-import { SteamEconItem } from "./../../EconItem.ts";
+import { SteamEconItem } from "./../../econ_item.ts";
 
 import { Methods, ServiceRequest } from "./ServiceRequest.ts";
 

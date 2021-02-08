@@ -1,6 +1,6 @@
 import { CryptStorage } from "./crypt_storage.ts";
 import { DataPoller, DataPollerOptions, PollData } from "./data_poller.ts";
-import { SteamApi } from "./SteamApi/mod.ts";
+import { SteamApi } from "./steam_api/mod.ts";
 import {
   LoginOptions,
   SteamCommunity,

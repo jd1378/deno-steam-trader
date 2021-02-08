@@ -1,7 +1,7 @@
 // deno-lint-ignore-file camelcase
-import { SteamApi } from "./SteamApi/mod.ts";
-import { OfferItem } from "./SteamApi/requests/IEconService.ts";
-import { GetAssetClassInfo } from "./SteamApi/requests/ISteamEconomy.ts";
+import { SteamApi } from "./steam_api/mod.ts";
+import { OfferItem } from "./steam_api/requests/IEconService.ts";
+import { GetAssetClassInfo } from "./steam_api/requests/ISteamEconomy.ts";
 import { LFU } from "../deps.ts";
 
 export const itemDescriptionLFU = new LFU({

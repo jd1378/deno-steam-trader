@@ -1,7 +1,7 @@
-import { GetTradeOffers } from "./SteamApi/requests/IEconService.ts";
+import { GetTradeOffers } from "./steam_api/requests/IEconService.ts";
 import { EOfferFilter } from "./enums/EOfferFilter.ts";
 import type { TradeManager } from "./trade_manager.ts";
-import { SteamApi } from "./SteamApi/mod.ts";
+import { SteamApi } from "./steam_api/mod.ts";
 import { Deferred } from "./deferred.ts";
 import { isNonTerminalState, TradeOffer } from "./trade_offer.ts";
 import { ETradeOfferState } from "./enums/ETradeOfferState.ts";

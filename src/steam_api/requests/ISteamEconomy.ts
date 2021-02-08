@@ -1,7 +1,7 @@
 // deno-lint-ignore-file camelcase
 
 import { Methods, ServiceRequest } from "./ServiceRequest.ts";
-import { SteamEconItem } from "./../../EconItem.ts";
+import { SteamEconItem } from "./../../econ_item.ts";
 
 abstract class ISteamEconomyRequest extends ServiceRequest {
   constructor() {

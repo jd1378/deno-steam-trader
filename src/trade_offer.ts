@@ -7,16 +7,16 @@ import {
   GetTradeStatus,
   Offer,
   TradeDetailAsset,
-} from "./SteamApi/requests/IEconService.ts";
+} from "./steam_api/requests/IEconService.ts";
 import {
   EconItem,
   FromOfferItemOptions,
   RequiredItemProps,
-} from "./EconItem.ts";
+} from "./econ_item.ts";
 import { SteamID } from "../deps.ts";
 import { EConfirmationMethod } from "./enums/EConfirmationMethod.ts";
 import { ETradeOfferState } from "./enums/ETradeOfferState.ts";
-import { ServiceRequest } from "./SteamApi/requests/ServiceRequest.ts";
+import { ServiceRequest } from "./steam_api/requests/ServiceRequest.ts";
 import { hasNoName } from "./utils.ts";
 import { ETradeStatus } from "./enums/ETradeStatus.ts";
 
