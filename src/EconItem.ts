@@ -106,7 +106,7 @@ export class EconItem {
    * classid is all you need to get a general overview of an item.
    * instanceid is for getting the finer details.
    */
-  classid: string;
+  classid?: string;
   /**
    * Only usable when classid is available.
    * instanceid allows you to get finer details such as how many kills are on a strange/StatTrak weapon, or custom names/descriptions.
@@ -128,7 +128,7 @@ export class EconItem {
   icon_url?: string;
   icon_url_large?: string;
   /** defaults to empty string if unavailable */
-  background_color: string;
+  background_color?: string;
   contextid?: string;
   fraudwarnings: Array<string>;
   descriptions?: Array<EconItemDescription>;
