@@ -6,12 +6,11 @@ import {
   SteamCommunity,
   SteamCommunityOptions,
 } from "./steam_community.ts";
-import { EventEmitter, getLanguageInfo } from "../deps.ts";
+import { EventEmitter, getLanguageInfo, SteamID } from "../deps.ts";
+import type { CookieOptions } from "../deps.ts";
 import { Storage } from "./storage.ts";
 import { SteamUser } from "./steam_user.ts";
-import { SteamID } from "https://deno.land/x/steamid@v1.1.1/mod.ts";
 import { TradeOffer } from "./trade_offer.ts";
-import type { CookieOptions } from "../deps.ts";
 
 export type TradeManagerOptions = {
   /** default: 'localhost' */
