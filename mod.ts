@@ -1,2 +1,3 @@
 export * from "./src/trade_manager.ts";
-export * from "./src/crypt_storage.ts";
+export { CryptStorage } from "./src/crypt_storage.ts";
+export { Storage } from "./src/storage.ts";
