@@ -49,6 +49,10 @@ export class TradeOffer {
   confirmationMethod: EConfirmationMethod;
   escrowEndsAt: Date | undefined;
   countering?: string;
+  /** milliseconds. if set before sending, this offer will be automatically cancelled after this amount of time passed. */
+  cancelTime?: number;
+  /** milliseconds. if set before sending, this offer will be automatically cancelled after this amount of time passed (when still pending). */
+  pendingCancelTime?: number;
   /** the token used to create an offer. usually available in user's trade url */
   private _token: string | undefined;
 
@@ -275,6 +279,13 @@ export class TradeOffer {
 
       // poll data will be saved on next poll if saving method is defined and polling is started
       this.manager.dataPoller.pollData.sent[this.id] = this.state;
+      if (this.cancelTime) {
+        this.manager.dataPoller.pollData.cancelTimes[this.id] = this.cancelTime;
+      }
+      if (this.pendingCancelTime) {
+        this.manager.dataPoller.pollData.pendingCancelTimes[this.id] =
+          this.pendingCancelTime;
+      }
     }
 
     if (body && body.needs_email_confirmation) {

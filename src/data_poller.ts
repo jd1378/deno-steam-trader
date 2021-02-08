@@ -3,6 +3,10 @@ import { EOfferFilter } from "./enums/EOfferFilter.ts";
 import type { TradeManager } from "./trade_manager.ts";
 import { SteamApi } from "./SteamApi/mod.ts";
 import { Deferred } from "./deferred.ts";
+import { TradeOffer } from "./trade_offer.ts";
+import { ETradeOfferState } from "./enums/ETradeOfferState.ts";
+import { EConfirmationMethod } from "./enums/EConfirmationMethod.ts";
+import { hasNoName } from "./utils.ts";
 
 const miminumPollInterval = 1000;
 
@@ -31,6 +35,10 @@ export type PollData = {
   received: Record<string, number>;
   /** timestamps of offer.created in format of Record<offerid, timestamp> */
   timestamps: Record<string, number>;
+  /** per offer custom cancelTimes in format of Record<offerid, number> (milliseconds) */
+  cancelTimes: Record<string, number>;
+  /** per offer custom pendingCancelTimes in format of Record<offerid, number> (milliseconds) */
+  pendingCancelTimes: Record<string, number>;
 };
 
 export class DataPoller {
@@ -67,6 +75,8 @@ export class DataPoller {
       received: {},
       timestamps: {},
       offersSince: 0,
+      cancelTimes: {},
+      pendingCancelTimes: {},
     };
   }
 
@@ -161,6 +171,137 @@ export class DataPoller {
           historicalCutoff: offersSince,
         };
         const apiresp = await this.getOffers(getOffersOptions);
+        // TODO
+        const oldestUpdatedTimestamp = offersSince;
+        let hasGlitchedOffer = false;
+
+        apiresp.sentOffers.forEach((offer) => {
+          if (!offer.id) {
+            this.manager.emit(
+              "debug",
+              "Warning: an offer id in response of steam api is not set. skipping.",
+              offer,
+            );
+            return;
+          }
+
+          if (!this.pollData.sent[offer.id]) {
+            // We sent this offer, but we have no record of it!
+            // maybe someone made an offer outside the bot
+            // or maybe the newly sent offer has not finished yet
+            // either the case, only emit the `unknownOfferSent` event if currently there's no pending send offer requests
+            if (!this.manager.pendingSendOffersCount) {
+              if (offer.fromRealTimeTrade) {
+                // This is a real-time trade offer.
+                if (
+                  offer.state == ETradeOfferState.CreatedNeedsConfirmation ||
+                  (offer.state == ETradeOfferState.Active &&
+                    offer.confirmationMethod != EConfirmationMethod.None)
+                ) {
+                  // we need to confirm this
+                  this.manager.emit("realTimeTradeConfirmationRequired", offer);
+                } else if (offer.state == ETradeOfferState.Accepted) {
+                  // both parties confirmed, trade complete
+                  this.manager.emit("realTimeTradeCompleted", offer);
+                }
+              }
+
+              this.manager.emit("unknownOfferSent", offer);
+              this.pollData.sent[offer.id] = offer.state;
+              this.pollData.timestamps[offer.id] = offer.created!.getTime() /
+                1000;
+            }
+          } else if (offer.state !== this.pollData.sent[offer.id]) {
+            if (!offer.isGlitched()) {
+              // We sent this offer, and it has now changed state
+              if (
+                offer.fromRealTimeTrade &&
+                offer.state == ETradeOfferState.Accepted
+              ) {
+                this.manager.emit("realTimeTradeCompleted", offer);
+              }
+
+              this.manager.emit(
+                "sentOfferChanged",
+                offer,
+                this.pollData.sent[offer.id],
+              );
+              this.pollData.sent[offer.id] = offer.state;
+              this.pollData.timestamps[offer.id] = offer.created!.getTime() /
+                1000;
+            } else {
+              hasGlitchedOffer = true;
+              let countWithoutName = 0;
+              if (this.manager.getDescriptions) {
+                countWithoutName = offer.itemsToGive.filter(hasNoName).length +
+                  offer.itemsToReceive.filter(hasNoName).length;
+              }
+              this.manager.emit(
+                "debug",
+                "Not emitting sentOfferChanged for " + offer.id +
+                  " right now because it's glitched (" +
+                  offer.itemsToGive.length + " to give, " +
+                  offer.itemsToReceive.length + " to receive," +
+                  countWithoutName + " without name",
+              );
+            }
+          }
+
+          if (offer.state === ETradeOfferState.Active) {
+            // The offer is still Active, and we sent it. See if it's time to cancel it automatically.
+            const cancelTime = this.pollData.cancelTimes[offer.id] ||
+              this.manager.cancelTime;
+
+            if (
+              cancelTime &&
+              (Date.now() - offer.updated!.getTime() >= cancelTime)
+            ) {
+              const offerid = offer.id;
+              offer.cancel().then(() => {
+                delete this.pollData.cancelTimes[offerid];
+                delete this.pollData.pendingCancelTimes[offerid];
+                this.manager.emit("sentOfferCanceled", offer, "cancelTime");
+              }).catch((err) =>
+                this.manager.emit(
+                  "debug",
+                  "Can't auto-cancel offer #" + offer.id + ": " + err.message,
+                )
+              );
+            }
+          }
+
+          if (
+            offer.state == ETradeOfferState.CreatedNeedsConfirmation &&
+            this.manager.pendingCancelTime
+          ) {
+            // The offer needs to be confirmed to be sent. Let's see if the maximum time has elapsed before we cancel it.
+            const pendingCancelTime =
+              this.pollData.pendingCancelTimes[offer.id] ||
+              this.manager.pendingCancelTime;
+
+            if (
+              pendingCancelTime &&
+              (Date.now() - offer.created!.getTime() >= pendingCancelTime)
+            ) {
+              const offerid = offer.id;
+              offer.cancel().then(() => {
+                delete this.pollData.cancelTimes[offerid];
+                delete this.pollData.pendingCancelTimes[offerid];
+                this.manager.emit(
+                  "sentPendingOfferCanceled",
+                  offer,
+                  "pendingCancelTime",
+                );
+              }).catch((err) =>
+                this.manager.emit(
+                  "debug",
+                  "Can't auto-cancel pending-confirmation offer #" + offer.id +
+                    ": " + err.message,
+                )
+              );
+            }
+          }
+        });
 
         // at the end
         this.manager.emit("pollSuccess");
@@ -248,6 +389,28 @@ export class DataPoller {
       new GetTradeOffers(getTraderOffersOptions),
     );
 
-    return apiresp;
+    const sentPromises = apiresp?.response?.trade_offers_sent?.map((offer) =>
+      TradeOffer.from(this.manager, offer)
+    );
+    let sentOffers: Array<TradeOffer> = [];
+
+    const receivedPromises = apiresp?.response?.trade_offers_received?.map(
+      (offer) => TradeOffer.from(this.manager, offer),
+    );
+    let receivedOffers: Array<TradeOffer> = [];
+
+    if (sentPromises?.length) {
+      sentOffers = await Promise.all(sentPromises);
+    }
+    if (receivedPromises?.length) {
+      receivedOffers = await Promise.all(receivedPromises);
+    }
+
+    const result = {
+      sentOffers,
+      receivedOffers,
+    };
+
+    return result;
   }
 }
