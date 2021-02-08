@@ -25,8 +25,8 @@ export type DataPollerOptions = {
   ) => Promise<void> | void;
   /** will be used to save and load poll data. **both** save and load functions must be defined **together**. */
   loadPollData?:
-    | ((username?: string) => Promise<PollData | undefined>)
-    | ((username?: string) => PollData | undefined);
+    | ((username: string) => Promise<PollData | undefined>)
+    | ((username: string) => PollData | undefined);
 };
 
 export type PollData = {

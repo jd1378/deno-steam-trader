@@ -25,8 +25,8 @@ export type SteamCommunityOptions = {
     username: string,
   ) => void | Promise<void>;
   loadCookies?:
-    | ((username?: string) => Promise<Array<CookieOptions> | undefined>)
-    | ((username?: string) => Array<CookieOptions> | undefined);
+    | ((username: string) => Promise<Array<CookieOptions> | undefined>)
+    | ((username: string) => Array<CookieOptions> | undefined);
 };
 
 export type LoginOptions = {
