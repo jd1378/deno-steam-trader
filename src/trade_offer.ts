@@ -221,27 +221,33 @@ export class TradeOffer {
     if (this.token) {
       offerCreateParams.trade_offer_access_token = this.token;
     }
+    let response;
+    try {
+      this.manager.pendingSendOffersCount++;
 
-    const response = await this.manager.steamCommunity.fetch(
-      "https://steamcommunity.com/tradeoffer/new/send",
-      {
-        headers: {
-          "referer": `https://steamcommunity.com/tradeoffer/${(this.id ||
-            "new")}/?partner=${this.partner.accountid}` +
-            (this.token ? "&token=" + this.token : ""),
+      response = await this.manager.steamCommunity.fetch(
+        "https://steamcommunity.com/tradeoffer/new/send",
+        {
+          headers: {
+            "referer": `https://steamcommunity.com/tradeoffer/${(this.id ||
+              "new")}/?partner=${this.partner.accountid}` +
+              (this.token ? "&token=" + this.token : ""),
+          },
+          form: {
+            "sessionid": this.manager.steamCommunity.getSessionID(),
+            "serverid": "1",
+            "partner": this.partner.toString(),
+            "tradeoffermessage": this.message || "",
+            "json_tradeoffer": JSON.stringify(offerdata),
+            "captcha": "",
+            "trade_offer_create_params": JSON.stringify(offerCreateParams),
+            "tradeofferid_countered": this.countering ? this.countering : "",
+          },
         },
-        form: {
-          "sessionid": this.manager.steamCommunity.getSessionID(),
-          "serverid": "1",
-          "partner": this.partner.toString(),
-          "tradeoffermessage": this.message || "",
-          "json_tradeoffer": JSON.stringify(offerdata),
-          "captcha": "",
-          "trade_offer_create_params": JSON.stringify(offerCreateParams),
-          "tradeofferid_countered": this.countering ? this.countering : "",
-        },
-      },
-    );
+      );
+    } finally {
+      this.manager.pendingSendOffersCount--;
+    }
 
     const body = await response.json();
 

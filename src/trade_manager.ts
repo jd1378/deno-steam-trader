@@ -36,6 +36,7 @@ export class TradeManager extends EventEmitter {
   dataPoller: DataPoller;
   private steamUser: SteamUser | undefined;
   getDescriptions: boolean;
+  pendingSendOffersCount: number;
 
   constructor(options: TradeManagerOptions) {
     super();
@@ -53,6 +54,7 @@ export class TradeManager extends EventEmitter {
     this.getDescriptions = getDescriptions;
     this.language = language;
     this.languageName = "";
+    this.pendingSendOffersCount = 0;
 
     if (language) {
       if (language == "szh") {
