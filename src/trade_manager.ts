@@ -1,3 +1,4 @@
+import { CryptStorage } from "./crypt_storage.ts";
 import { DataPoller, DataPollerOptions, PollData } from "./data_poller.ts";
 import { SteamApi } from "./SteamApi/mod.ts";
 import {
@@ -10,6 +11,7 @@ import { Storage } from "./storage.ts";
 import { SteamUser } from "./steam_user.ts";
 import { SteamID } from "https://deno.land/x/steamid@v1.1.1/mod.ts";
 import { TradeOffer } from "./trade_offer.ts";
+import type { CookieOptions } from "../deps.ts";
 
 export type TradeManagerOptions = {
   /** default: 'localhost' */
@@ -190,7 +192,21 @@ export async function createTradeManager(options: TradeManagerOptions) {
     ...otherOptions
   } = options || {};
   const tradeManager = new TradeManager({
-    communityOptions,
+    communityOptions: {
+      ...communityOptions,
+      loadCookies: (steamid64) => {
+        return CryptStorage.loadData(
+          `comm_cookies_${steamid64}.bin`,
+        ) as Promise<
+          Array<
+            CookieOptions
+          >
+        >;
+      },
+      saveCookies: async (data, steamid64) => {
+        await Storage.saveData(`comm_cookies_${steamid64}.bin`, data);
+      },
+    },
     pollingOptions: {
       ...pollingOptions,
       loadPollData: (steamid64) => {

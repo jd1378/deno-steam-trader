@@ -1,6 +1,7 @@
 import {
   Cookie,
   CookieJar,
+  CookieOptions,
   EventEmitter,
   generateAuthCode,
   getKeySize,
@@ -19,6 +20,10 @@ export type SteamCommunityOptions = {
   username?: string;
   password?: string;
   sharedSecret?: string;
+  saveCookies?: (cookieJar: CookieJar, steamid: string) => void | Promise<void>;
+  loadCookies?:
+    | ((steamid?: string) => Promise<Array<CookieOptions> | undefined>)
+    | ((steamid?: string) => Array<CookieOptions> | undefined);
 };
 
 export type LoginOptions = {
@@ -69,6 +74,8 @@ export class SteamCommunity extends EventEmitter {
   private sharedSecret: string | undefined;
   private loadedCookies: boolean;
   private loggingIn: boolean;
+  private loadCookies;
+  private saveCookies;
 
   constructor(options: SteamCommunityOptions) {
     if (typeof options !== "object") {
@@ -83,6 +90,11 @@ export class SteamCommunity extends EventEmitter {
     this.lastLoginAttempt = {};
     this.loadedCookies = false;
     this.loggingIn = false;
+
+    if (options?.saveCookies && options?.loadCookies) {
+      this.saveCookies = options.saveCookies;
+      this.loadCookies = options.loadCookies;
+    }
 
     this.cookieJar = new CookieJar();
     const wrappedWithCookiesFetch = wrapFetchWithCookieJar({
@@ -104,44 +116,50 @@ export class SteamCommunity extends EventEmitter {
   }
 
   // TODO: save and load cookies properly
-  async saveCookies() {
-    try {
-      await Deno.writeTextFile("cjar.json", JSON.stringify(this.cookieJar));
-    } catch (err) {
-      this.emit("debug", "Failed to save cookies: " + err);
+  async trySaveCookies() {
+    if (this.saveCookies && this.steamID) {
+      try {
+        await this.saveCookies(this.cookieJar, this.steamID.toString());
+      } catch (err) {
+        this.emit("debug", "Failed to save cookies: " + err);
+      }
     }
   }
 
-  async loadCookies() {
+  async tryLoadCookies() {
     if (this.loadedCookies) return;
-    try {
-      const cjardata = await Deno.readTextFile("cjar.json");
-      if (cjardata) {
-        this.cookieJar.replaceCookies(JSON.parse(cjardata));
-        this.emit("debug", "cookie jar loaded from disk.");
-        let steamID64 = this.cookieJar.getCookie({
-          name: "steamLoginSecure",
-        })?.value;
-        let steamID64Match;
+    if (this.loadCookies && this.steamID) {
+      try {
+        const arrayOfCookieOptions = await this.loadCookies(
+          this.steamID.toString(),
+        );
+        if (arrayOfCookieOptions?.length) {
+          this.cookieJar.replaceCookies(arrayOfCookieOptions);
+          this.emit("debug", "cookie jar loaded from disk.");
+          let steamID64 = this.cookieJar.getCookie({
+            name: "steamLoginSecure",
+          })?.value;
+          let steamID64Match;
 
-        if (steamID64) {
-          steamID64 = decodeURIComponent(steamID64);
-          steamID64Match = steamID64.match(
-            /(\d+)/,
-          );
-        }
+          if (steamID64) {
+            steamID64 = decodeURIComponent(steamID64);
+            steamID64Match = steamID64.match(
+              /(\d+)/,
+            );
+          }
 
-        if (steamID64Match) {
-          this.steamID = new SteamID(steamID64Match[1]);
-          this.emit("debug", "restored steamid from cookies");
-        } else {
-          this.emit("debug", "Cannot get steamid from cookies");
+          if (steamID64Match) {
+            this.steamID = new SteamID(steamID64Match[1]);
+            this.emit("debug", "restored steamid from cookies");
+          } else {
+            this.emit("debug", "Cannot get steamid from cookies");
+          }
         }
+      } catch {
+        this.emit("debug", "no saved cookies found.");
+      } finally {
+        this.loadedCookies = true;
       }
-    } catch {
-      this.emit("debug", "no saved cookies found.");
-    } finally {
-      this.loadedCookies = true;
     }
   }
 
@@ -263,7 +281,7 @@ export class SteamCommunity extends EventEmitter {
     this.loggingIn = true;
     try {
       // TODO correctly load cookies conditionally
-      await this.loadCookies();
+      await this.tryLoadCookies();
 
       const { isLoggedIn } = await this.getLoginStatus();
       if (isLoggedIn) return;
@@ -398,7 +416,7 @@ export class SteamCommunity extends EventEmitter {
         throw new Error(resp.message || "Unknown error");
       } else {
         this.getSessionID();
-        await this.saveCookies();
+        await this.tryLoadCookies();
         const steamLoginCV = this.cookieJar.getCookie({
           name: "steamLoginSecure",
         })
@@ -430,7 +448,7 @@ export class SteamCommunity extends EventEmitter {
     isFamilyLockActive: boolean | undefined;
     error?: Error;
   }> {
-    await this.loadCookies();
+    await this.tryLoadCookies();
     try {
       const response = await this.fetch("https://steamcommunity.com/my", {
         redirect: "manual",
