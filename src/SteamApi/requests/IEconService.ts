@@ -268,8 +268,15 @@ export type TradeDetailAsset = {
   amount: string;
   classid: string;
   instanceid: string;
-  new_assetid: string;
-  new_contextid: string;
+  new_assetid?: string;
+  new_contextid?: string;
+  /**  Only present if the trade was rolled back (e.g. due to a failure, by Steam Support, or by a canceled trade hold).
+   *  The item's new asset ID after it was returned to its original owner's inventory after the trade was rolled back. */
+  rollback_new_assetid?: string;
+  /** Only present if the trade was rolled back (e.g. due to a failure, by Steam Support, or by a canceled trade hold).
+   *  The item's new context ID after it was returned to its original owner's inventory after the trade was rolled back.
+   */
+  rollback_new_contextid?: string;
 };
 
 export type TradeDetails = {
