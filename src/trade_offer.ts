@@ -4,7 +4,9 @@ import {
   CancelTradeOffer,
   DeclineTradeOffer,
   GetTradeOffer,
+  GetTradeStatus,
   Offer,
+  TradeDetailAsset,
 } from "./SteamApi/requests/IEconService.ts";
 import {
   EconItem,
@@ -16,6 +18,7 @@ import { EConfirmationMethod } from "./enums/EConfirmationMethod.ts";
 import { ETradeOfferState } from "./enums/ETradeOfferState.ts";
 import { ServiceRequest } from "./SteamApi/requests/ServiceRequest.ts";
 import { hasNoName } from "./utils.ts";
+import { ETradeStatus } from "./enums/ETradeStatus.ts";
 
 const NON_TERMINAL_OFFER_STATES = [
   ETradeOfferState.Accepted,
@@ -465,6 +468,60 @@ export class TradeOffer {
     } catch (err) {
       throw new Error("Cannot load new trade data: " + err.message);
     }
+  }
+
+  /**
+   * 
+   * @param getDetailsIfFailed - If `false` and the trade's state is anything but `Complete`, `InEscrow`, or `EscrowRollback`,
+   * then the callback will report an error instead of returning the data to you.
+   * This is intended to prevent ignorant developers from blindly trusting the data they get without verifying that 
+   * the trade has completed successfully. Defaults to `false`.
+   */
+  async getExchangeDetails(getDetailsIfFailed = false) {
+    if (!this.id) {
+      throw new Error("Cannot get trade details for an unsent trade offer");
+    }
+
+    if (!this.tradeID) {
+      throw new Error("No trade ID; unable to get trade details");
+    }
+
+    const resp = await this.manager.steamApi.fetch(
+      new GetTradeStatus(this.tradeID),
+    );
+
+    const trade = resp!.response!.trades![0]; // checked by steamapi post process
+
+    if (
+      !getDetailsIfFailed &&
+      [
+        ETradeStatus.Complete,
+        ETradeStatus.InEscrow,
+        ETradeStatus.EscrowRollback,
+      ].indexOf(trade.status)
+    ) {
+      throw new Error(
+        "Trade status is " + (ETradeStatus[trade.status] || trade.status),
+      );
+    }
+
+    let sentItems;
+    let receivedItems;
+
+    if (this.manager.getDescriptions) {
+      // todo
+    } else {
+      sentItems = trade.assets_given || [] as TradeDetailAsset[];
+      receivedItems = trade.assets_received || [] as TradeDetailAsset[];
+    }
+
+    // TODO
+    return {
+      status: trade.status,
+      sentItems,
+      receivedItems,
+      tradeInitTime: new Date(trade.time_init * 1000),
+    };
   }
 
   private offerItemChangeGuard(
