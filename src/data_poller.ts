@@ -179,7 +179,7 @@ export class DataPoller {
           if (!offer.id) {
             this.manager.emit(
               "debug",
-              "Warning: an offer id in response of steam api is not set. skipping.",
+              "Warning: an offer id in sent offers of response is not set. skipping.",
               offer,
             );
             return;
@@ -264,7 +264,7 @@ export class DataPoller {
               }).catch((err) =>
                 this.manager.emit(
                   "debug",
-                  "Can't auto-cancel offer #" + offer.id + ": " + err.message,
+                  "Can't auto-cancel offer #" + offerid + ": " + err.message,
                 )
               );
             }
@@ -302,6 +302,109 @@ export class DataPoller {
             }
           }
         });
+
+        if (this.manager.cancelOfferCount) {
+          // TODO: Incorrect count of sent active
+          /* const sentActive = apiresp.sentOffers.filter(offer => offer.state === ETradeOfferState.Active);
+          
+          if (sentActive.length >= this.manager.cancelOfferCount) {
+            // We have too many offers out. Let's cancel the oldest.
+            // Use updated since that reflects when it was confirmed, if necessary.
+            let oldest = sentActive[0];
+            for (const offer of sentActive) {
+              if (offer.updated!.getTime() < oldest.updated!.getTime()) {
+                oldest = offer;
+              }
+            }
+
+            if (this.manager.cancelOfferCountMinAge && Date.now() - oldest.updated!.getTime() < this.manager.cancelOfferCountMinAge) {
+              continue;
+            }
+
+            const offerid = oldest.id;
+            oldest.cancel().then(() => {
+              delete this.pollData.cancelTimes[offerid];
+              delete this.pollData.pendingCancelTimes[offerid];
+              this.manager.emit('sentOfferCanceled', oldest, 'cancelOfferCount');
+            }).catch(err => {
+              this.manager.emit(
+                  "debug",
+                  "Can't auto-cancel offer #" + offer.id + ": " + err.message,
+                )
+            });
+          } */
+        }
+
+        apiresp.receivedOffers.forEach((offer) => {
+          if (!offer.id) {
+            this.manager.emit(
+              "debug",
+              "Warning: an offer id in received offers of response is not set. skipping.",
+              offer,
+            );
+            return;
+          }
+
+          if (offer.isGlitched()) {
+            hasGlitchedOffer = true;
+            return;
+          }
+
+          if (offer.fromRealTimeTrade) {
+            // This is a real-time trade offer
+            if (
+              !this.pollData.received[offer.id] &&
+              (offer.state === ETradeOfferState.CreatedNeedsConfirmation ||
+                (offer.state === ETradeOfferState.Active &&
+                  offer.confirmationMethod !== EConfirmationMethod.None))
+            ) {
+              this.manager.emit("realTimeTradeConfirmationRequired", offer);
+            } else if (
+              offer.state == ETradeOfferState.Accepted &&
+              (!this.pollData.received[offer.id] ||
+                (this.pollData.received[offer.id] !== offer.state))
+            ) {
+              this.manager.emit("realTimeTradeCompleted", offer);
+            }
+          }
+
+          if (
+            !this.pollData.received[offer.id] &&
+            offer.state === ETradeOfferState.Active
+          ) {
+            this.manager.emit("newOffer", offer);
+          } else if (
+            this.pollData.received[offer.id] &&
+            offer.state !== this.pollData.received[offer.id]
+          ) {
+            this.manager.emit(
+              "receivedOfferChanged",
+              offer,
+              this.pollData.received[offer.id],
+            );
+          }
+
+          this.pollData.received[offer.id] = offer.state;
+          this.pollData.timestamps[offer.id] = offer.created!.getTime() / 1000;
+        });
+
+        // TODO: move based on oldest non-terminal offer
+        // Find the latest update time
+        if (!hasGlitchedOffer) {
+          let latest = this.pollData.offersSince || 0;
+
+          const setTheLatest = (offer: TradeOffer) => {
+            if (!offer?.updated) return;
+            const updated = Math.floor(offer.updated.getTime() / 1000);
+            if (updated > latest) {
+              latest = updated;
+            }
+          };
+          apiresp.sentOffers.forEach(setTheLatest);
+          apiresp.receivedOffers.forEach(setTheLatest);
+
+          this.pollData.offersSince = latest;
+        }
 
         // at the end
         this.manager.emit("pollSuccess");
