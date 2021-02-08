@@ -13,6 +13,20 @@ import { ETradeOfferState } from "./enums/ETradeOfferState.ts";
 import { ServiceRequest } from "./SteamApi/requests/ServiceRequest.ts";
 import { hasNoName } from "./utils.ts";
 
+const NON_TERMINAL_OFFER_STATES = [
+  ETradeOfferState.Accepted,
+  ETradeOfferState.CreatedNeedsConfirmation,
+  ETradeOfferState.InEscrow,
+];
+
+export function isNonTerminalState(offer: Offer | TradeOffer) {
+  if ("trade_offer_state" in offer) {
+    return NON_TERMINAL_OFFER_STATES.includes(offer.trade_offer_state);
+  } else {
+    return NON_TERMINAL_OFFER_STATES.includes(offer.state);
+  }
+}
+
 export class TradeOffer {
   manager: TradeManager;
   /** The other party in this offer, as a SteamID object */
