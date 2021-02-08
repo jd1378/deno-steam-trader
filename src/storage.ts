@@ -1,12 +1,12 @@
 import { dirname, resolve } from "../deps.ts";
 
-function getPathInStorage(path: string) {
+export function getPathInStorage(path: string) {
   return resolve(Deno.cwd(), "storage", path);
 }
 
-async function mkdir(path: string) {
+export async function mkdir(path: string) {
   try {
-    await Deno.mkdir(path, { recursive: true });
+    await Deno.mkdir(dirname(path), { recursive: true });
   } catch {
     // silently ignore if directory exist
   }
@@ -17,15 +17,14 @@ async function mkdir(path: string) {
  * 
  * Automatically calls JSON.stringify on your data on save and JSON.parse on load.
  * 
- * on windows: --allow-read=%cd% --allow-write=%cd%
+ * on windows (not sure): --allow-read=%cd%\\storage --allow-write=%cd%\\storage
  * 
- * on linux: --allow-read=$PWD --allow-write=$PWD
+ * on linux: --allow-read=$PWD/storage --allow-write=$PWD/storage
  */
 export class Storage {
   static async saveData(path: string, data: unknown) {
     const resolvedPath = getPathInStorage(path);
-    const dir = dirname(resolvedPath);
-    await mkdir(dir);
+    await mkdir(resolvedPath);
     await Deno.writeTextFile(resolvedPath, JSON.stringify(data));
   }
 

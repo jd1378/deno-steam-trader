@@ -1,4 +1,5 @@
 import { AES, Buffer, getMachineId } from "../deps.ts";
+import { getPathInStorage, mkdir } from "./storage.ts";
 
 /** turns any string with any length to a string with 32 chars */
 function normalizeKey(key: string) {
@@ -18,19 +19,21 @@ function normalizeKey(key: string) {
  * 
  * Automatically calls JSON.stringify on your data on save and JSON.parse on load.
  * 
- * on windows: --allow-env, --allow-run
+ * on windows (not sure): --allow-env --allow-run --allow-read=%cd%\\storage --allow-write=%cd%\\storage
  * 
- * on linux: --allow-read=/var/lib/dbus/machine-id,/etc/machine-id
+ * on linux: --allow-read=/var/lib/dbus/machine-id,/etc/machine-id --allow-read=$PWD/storage --allow-write=$PWD/storage
  */
 export class CryptStorage {
-  static async saveData(path: string | URL, data: unknown) {
+  static async saveData(path: string, data: unknown) {
+    const resolvedPath = getPathInStorage(path);
+    await mkdir(resolvedPath);
     const key = normalizeKey(await getMachineId());
     const aes = new AES(key);
-    await Deno.writeFile(path, await aes.encrypt(JSON.stringify(data)));
+    await Deno.writeFile(resolvedPath, await aes.encrypt(JSON.stringify(data)));
   }
 
-  static async loadData(path: string | URL): Promise<unknown> {
-    const fileData = await Deno.readFile(path);
+  static async loadData(path: string): Promise<unknown> {
+    const fileData = await Deno.readFile(getPathInStorage(path));
 
     const key = normalizeKey(await getMachineId());
     const aes = new AES(key);
