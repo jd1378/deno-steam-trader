@@ -1,6 +1,5 @@
 import { TradeManager } from "./trade_manager.ts";
 import { SteamError, throwIfHasError } from "./steam_error.ts";
-import { SteamApi } from "./SteamApi/mod.ts";
 import {
   CancelTradeOffer,
   DeclineTradeOffer,
@@ -12,6 +11,7 @@ import { SteamID } from "../deps.ts";
 import { EConfirmationMethod } from "./enums/EConfirmationMethod.ts";
 import { ETradeOfferState } from "./enums/ETradeOfferState.ts";
 import { ServiceRequest } from "./SteamApi/requests/ServiceRequest.ts";
+import { hasNoName } from "./utils.ts";
 
 export class TradeOffer {
   manager: TradeManager;
@@ -130,10 +130,13 @@ export class TradeOffer {
     }
 
     // Is any item missing its name?
-    // TODO: Since getting the description is going to be optional, this check should be invalid.
-    // if (this.manager._language && this.itemsToGive.concat(this.itemsToReceive).some(item => !item.name)) {
-    //   return true;
-    // }
+    // Note: getting the description is optional.
+    if (
+      this.manager.getDescriptions &&
+      (this.itemsToGive.some(hasNoName) || this.itemsToReceive.some(hasNoName))
+    ) {
+      return true;
+    }
 
     return false;
   }
