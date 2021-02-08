@@ -203,6 +203,7 @@ export async function createTradeManager(options: TradeManagerOptions) {
           >
         >;
       },
+      // our cookie jar supports json serialization directly
       saveCookies: async (data, steamid64) => {
         await Storage.saveData(`comm_cookies_${steamid64}.bin`, data);
       },
