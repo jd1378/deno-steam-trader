@@ -199,31 +199,6 @@ export class TradeOffer {
       : undefined;
   }
 
-  static async from(
-    manager: TradeManager,
-    data: Offer,
-  ) {
-    const offer = new TradeOffer(
-      manager,
-      new SteamID("[U:1:" + data.accountid_other + "]"),
-    );
-    await offer._update(data);
-    return offer;
-  }
-
-  static async fromOfferId(
-    manager: TradeManager,
-    offerid: string,
-  ) {
-    const offer = new TradeOffer(
-      manager,
-      "_internal_use_flag",
-    );
-    offer.id = offerid;
-    await offer.update();
-    return offer;
-  }
-
   async send(): Promise<ETradeOfferState> {
     if (this.id) {
       throw new Error("This offer has already been sent");
@@ -491,5 +466,30 @@ export class TradeOffer {
     } catch (err) {
       throw new Error("Cannot load new trade data: " + err.message);
     }
+  }
+
+  static async from(
+    manager: TradeManager,
+    data: Offer,
+  ) {
+    const offer = new TradeOffer(
+      manager,
+      new SteamID("[U:1:" + data.accountid_other + "]"),
+    );
+    await offer._update(data);
+    return offer;
+  }
+
+  static async fromOfferId(
+    manager: TradeManager,
+    offerid: string,
+  ) {
+    const offer = new TradeOffer(
+      manager,
+      "_internal_use_flag",
+    );
+    offer.id = offerid;
+    await offer.update();
+    return offer;
   }
 }
