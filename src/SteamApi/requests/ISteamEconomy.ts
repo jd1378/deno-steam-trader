@@ -76,12 +76,11 @@ export class GetAssetClassInfo extends ISteamEconomyRequest {
     }
   }
 
-  // deno-lint-ignore no-explicit-any
-  postProcess(response: { result: Record<string, any> }) {
+  postProcess(response: GetAssetClassInfo["responseStructure"]) {
     if (this.skipFix) {
       return response;
     }
-    if (!response.result) {
+    if (!response?.result) {
       throw new Error("Malformed Response");
     }
 

@@ -104,20 +104,14 @@ export class GetTradeOffer extends IEconServiceRequest {
   }
 
   responseStructure?: {
-    response: {
-      offer?: Offer;
-      /** only if get_descriptions is true. unreliable */
-      descriptions?: Array<Omit<SteamEconItem, "id" | "assetid" | "amount">>;
-    };
-  };
-  postProcess(body: {
     response?: {
       offer?: Offer;
       /** only if get_descriptions is true. unreliable */
       descriptions?: Array<Omit<SteamEconItem, "id" | "assetid" | "amount">>;
     };
-  }) {
-    if (!body.response) {
+  };
+  postProcess(body: GetTradeOffer["responseStructure"]) {
+    if (!body?.response) {
       throw new Error("malformed response");
     }
 
@@ -163,7 +157,7 @@ export class GetTradeOffers extends IEconServiceRequest {
   }
 
   responseStructure?: {
-    response: {
+    response?: {
       trade_offers_sent?: Array<Offer>;
       trade_offers_received?: Array<Offer>;
       /** only if get_descriptions is true. unreliable */
@@ -171,15 +165,8 @@ export class GetTradeOffers extends IEconServiceRequest {
     };
   };
 
-  postProcess(body: {
-    response?: {
-      trade_offers_sent?: Array<Offer>;
-      trade_offers_received?: Array<Offer>;
-      /** only if get_descriptions is true. unreliable */
-      descriptions?: Array<Omit<SteamEconItem, "id" | "assetid" | "amount">>;
-    };
-  }) {
-    if (!body.response) {
+  postProcess(body: GetTradeOffers["responseStructure"]) {
+    if (!body?.response) {
       throw new Error("malformed response");
     }
     const allOffers = fastConcat(
