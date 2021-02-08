@@ -19,11 +19,14 @@ export type DataPollerOptions = {
   interval?: number;
   manager: TradeManager;
   /** will be used to save and load poll data. **both** save and load functions must be defined **together**. */
-  savePollData?: (pollData: PollData, steamid?: string) => Promise<void> | void;
+  savePollData?: (
+    pollData: PollData,
+    username?: string,
+  ) => Promise<void> | void;
   /** will be used to save and load poll data. **both** save and load functions must be defined **together**. */
   loadPollData?:
-    | ((steamid?: string) => Promise<PollData | undefined>)
-    | ((steamid?: string) => PollData | undefined);
+    | ((username?: string) => Promise<PollData | undefined>)
+    | ((username?: string) => PollData | undefined);
 };
 
 export type PollData = {
@@ -122,8 +125,11 @@ export class DataPoller {
         return;
       }
 
-      // don't poll if we don't have SteamID of this account.
-      if (!this.manager.steamCommunity.steamID) {
+      // don't poll if we don't have SteamID or username of this account.
+      if (
+        !this.manager.steamCommunity.steamID ||
+        !this.manager.steamCommunity.username
+      ) {
         return;
       }
 
@@ -132,7 +138,7 @@ export class DataPoller {
         let loadedData;
         try {
           loadedData = await this.loadPollData(
-            this.manager.steamCommunity.steamID.toString(),
+            this.manager.steamCommunity.username,
           );
         } catch (err) {
           this.manager.emit(
@@ -447,12 +453,12 @@ export class DataPoller {
         this.manager.emit("pollSuccess");
         if (this.savePollData) {
           try {
-            if (!this.manager.steamCommunity.steamID) {
-              throw new Error("steam community steamid is not set");
+            if (!this.manager.steamCommunity.username) {
+              throw new Error("steam community username is not set");
             }
             await this.savePollData(
               this.pollData,
-              this.manager.steamCommunity.steamID.toString(),
+              this.manager.steamCommunity.username,
             );
           } catch (err) {
             this.manager.emit(

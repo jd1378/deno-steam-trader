@@ -199,9 +199,9 @@ export async function createTradeManager(options: TradeManagerOptions) {
   const tradeManager = new TradeManager({
     communityOptions: {
       ...communityOptions,
-      loadCookies: (steamid64) => {
+      loadCookies: (username) => {
         return CryptStorage.loadData(
-          `comm_cookies_${steamid64}.bin`,
+          `comm_cookies_${username}.bin`,
         ) as Promise<
           Array<
             CookieOptions
@@ -209,19 +209,19 @@ export async function createTradeManager(options: TradeManagerOptions) {
         >;
       },
       // our cookie jar supports json serialization directly
-      saveCookies: async (data, steamid64) => {
-        await Storage.saveData(`comm_cookies_${steamid64}.bin`, data);
+      saveCookies: async (data, username) => {
+        await Storage.saveData(`comm_cookies_${username}.bin`, data);
       },
     },
     pollingOptions: {
       ...pollingOptions,
-      loadPollData: (steamid64) => {
-        return Storage.loadData(`poll_data_${steamid64}.json`) as Promise<
+      loadPollData: (username) => {
+        return Storage.loadData(`poll_data_${username}.json`) as Promise<
           PollData
         >;
       },
-      savePollData: async (data, steamid64) => {
-        await Storage.saveData(`poll_data_${steamid64}.json`, data);
+      savePollData: async (data, username) => {
+        await Storage.saveData(`poll_data_${username}.json`, data);
       },
     },
     ...otherOptions,

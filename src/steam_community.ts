@@ -20,10 +20,13 @@ export type SteamCommunityOptions = {
   username?: string;
   password?: string;
   sharedSecret?: string;
-  saveCookies?: (cookieJar: CookieJar, steamid: string) => void | Promise<void>;
+  saveCookies?: (
+    cookieJar: CookieJar,
+    username: string,
+  ) => void | Promise<void>;
   loadCookies?:
-    | ((steamid?: string) => Promise<Array<CookieOptions> | undefined>)
-    | ((steamid?: string) => Array<CookieOptions> | undefined);
+    | ((username?: string) => Promise<Array<CookieOptions> | undefined>)
+    | ((username?: string) => Array<CookieOptions> | undefined);
 };
 
 export type LoginOptions = {
@@ -69,8 +72,8 @@ export class SteamCommunity extends EventEmitter {
   public fetch;
   private lastLoginAttempt: LoginAttemptData;
   steamID: SteamID | undefined;
-  private username: string | undefined;
-  private password: string | undefined;
+  username: string | undefined;
+  password: string | undefined;
   private sharedSecret: string | undefined;
   private loadedCookies: boolean;
   private loggingIn: boolean;
@@ -117,9 +120,9 @@ export class SteamCommunity extends EventEmitter {
 
   // TODO: save and load cookies properly
   async trySaveCookies() {
-    if (this.saveCookies && this.steamID) {
+    if (this.saveCookies && this.username) {
       try {
-        await this.saveCookies(this.cookieJar, this.steamID.toString());
+        await this.saveCookies(this.cookieJar, this.username);
       } catch (err) {
         this.emit("debug", "Failed to save cookies: " + err);
       }
@@ -128,10 +131,10 @@ export class SteamCommunity extends EventEmitter {
 
   async tryLoadCookies() {
     if (this.loadedCookies) return;
-    if (this.loadCookies && this.steamID) {
+    if (this.loadCookies && this.username) {
       try {
         const arrayOfCookieOptions = await this.loadCookies(
-          this.steamID.toString(),
+          this.username,
         );
         if (arrayOfCookieOptions?.length) {
           this.cookieJar.replaceCookies(arrayOfCookieOptions);
