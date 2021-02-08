@@ -3,10 +3,10 @@ import { EOfferFilter } from "./enums/EOfferFilter.ts";
 import type { TradeManager } from "./trade_manager.ts";
 import { SteamApi } from "./SteamApi/mod.ts";
 import { Deferred } from "./deferred.ts";
-import { TradeOffer } from "./trade_offer.ts";
+import { isNonTerminalState, TradeOffer } from "./trade_offer.ts";
 import { ETradeOfferState } from "./enums/ETradeOfferState.ts";
 import { EConfirmationMethod } from "./enums/EConfirmationMethod.ts";
-import { hasNoName } from "./utils.ts";
+import { fastConcat, hasNoName } from "./utils.ts";
 
 const miminumPollInterval = 1000;
 
@@ -101,6 +101,14 @@ export class DataPoller {
     }
   }
 
+  deleteOldProps(offerid: string) {
+    delete this.pollData.sent[offerid];
+    delete this.pollData.received[offerid];
+    delete this.pollData.cancelTimes[offerid];
+    delete this.pollData.pendingCancelTimes[offerid];
+    delete this.pollData.timestamps[offerid];
+  }
+
   async doPoll(doFullUpdate?: boolean) {
     if (this.polling) return;
     this.polling = true;
@@ -171,8 +179,6 @@ export class DataPoller {
           historicalCutoff: offersSince,
         };
         const apiresp = await this.getOffers(getOffersOptions);
-        // TODO
-        const oldestUpdatedTimestamp = offersSince;
         let hasGlitchedOffer = false;
 
         apiresp.sentOffers.forEach((offer) => {
@@ -194,22 +200,26 @@ export class DataPoller {
               if (offer.fromRealTimeTrade) {
                 // This is a real-time trade offer.
                 if (
-                  offer.state == ETradeOfferState.CreatedNeedsConfirmation ||
-                  (offer.state == ETradeOfferState.Active &&
+                  offer.state === ETradeOfferState.CreatedNeedsConfirmation ||
+                  (offer.state === ETradeOfferState.Active &&
                     offer.confirmationMethod != EConfirmationMethod.None)
                 ) {
                   // we need to confirm this
                   this.manager.emit("realTimeTradeConfirmationRequired", offer);
-                } else if (offer.state == ETradeOfferState.Accepted) {
+                } else if (offer.state === ETradeOfferState.Accepted) {
                   // both parties confirmed, trade complete
                   this.manager.emit("realTimeTradeCompleted", offer);
                 }
               }
 
               this.manager.emit("unknownOfferSent", offer);
-              this.pollData.sent[offer.id] = offer.state;
-              this.pollData.timestamps[offer.id] = offer.created!.getTime() /
-                1000;
+              if (isNonTerminalState(offer)) {
+                this.pollData.sent[offer.id] = offer.state;
+                this.pollData.timestamps[offer.id] = offer.updated!.getTime() /
+                  1000;
+              } else {
+                this.deleteOldProps(offer.id);
+              }
             }
           } else if (offer.state !== this.pollData.sent[offer.id]) {
             if (!offer.isGlitched()) {
@@ -226,9 +236,13 @@ export class DataPoller {
                 offer,
                 this.pollData.sent[offer.id],
               );
-              this.pollData.sent[offer.id] = offer.state;
-              this.pollData.timestamps[offer.id] = offer.created!.getTime() /
-                1000;
+              if (isNonTerminalState(offer)) {
+                this.pollData.sent[offer.id] = offer.state;
+                this.pollData.timestamps[offer.id] = offer.updated!.getTime() /
+                  1000;
+              } else {
+                this.deleteOldProps(offer.id);
+              }
             } else {
               hasGlitchedOffer = true;
               let countWithoutName = 0;
@@ -258,8 +272,7 @@ export class DataPoller {
             ) {
               const offerid = offer.id;
               offer.cancel().then(() => {
-                delete this.pollData.cancelTimes[offerid];
-                delete this.pollData.pendingCancelTimes[offerid];
+                this.deleteOldProps(offerid);
                 this.manager.emit("sentOfferCanceled", offer, "cancelTime");
               }).catch((err) =>
                 this.manager.emit(
@@ -285,8 +298,7 @@ export class DataPoller {
             ) {
               const offerid = offer.id;
               offer.cancel().then(() => {
-                delete this.pollData.cancelTimes[offerid];
-                delete this.pollData.pendingCancelTimes[offerid];
+                this.deleteOldProps(offerid);
                 this.manager.emit(
                   "sentPendingOfferCanceled",
                   offer,
@@ -304,35 +316,57 @@ export class DataPoller {
         });
 
         if (this.manager.cancelOfferCount) {
-          // TODO: Incorrect count of sent active
-          /* const sentActive = apiresp.sentOffers.filter(offer => offer.state === ETradeOfferState.Active);
-          
+          // TODO: fix timestamps
+          const sentActive: Array<[string, number]> = apiresp.sentOffers.filter(
+            (offer) => offer.state === ETradeOfferState.Active,
+          ).map((offer) => [offer.id!, offer.state]);
+          const polledSentActive = Object.entries(this.pollData.sent).filter((
+            [_, state],
+          ) => state === ETradeOfferState.Active);
+          fastConcat(sentActive, polledSentActive);
+
           if (sentActive.length >= this.manager.cancelOfferCount) {
-            // We have too many offers out. Let's cancel the oldest.
-            // Use updated since that reflects when it was confirmed, if necessary.
-            let oldest = sentActive[0];
-            for (const offer of sentActive) {
-              if (offer.updated!.getTime() < oldest.updated!.getTime()) {
-                oldest = offer;
+            const cancelThisMany = sentActive.length -
+              this.manager.cancelOfferCount;
+            sentActive.sort((a, b) => {
+              // if a is older (meaning number is smaller)
+              // it will move to start of array
+              // because smaller minus bigger is always smaller than 0
+              return this.pollData.timestamps[a[0]] -
+                this.pollData.timestamps[b[0]];
+            });
+            for (let i = 0; i < cancelThisMany; i++) {
+              if (sentActive[i] && sentActive[i][0]) {
+                const offerid = sentActive[i][0];
+                if (
+                  this.manager.cancelOfferCountMinAge &&
+                  Date.now() - this.pollData.timestamps[offerid] <
+                    this.manager.cancelOfferCountMinAge
+                ) {
+                  continue;
+                }
+
+                TradeOffer.fromOfferId(this.manager, offerid).then(
+                  (tradeOffer) => {
+                    tradeOffer.cancel().then(() => {
+                      this.deleteOldProps(offerid);
+                      this.manager.emit(
+                        "sentOfferCanceled",
+                        tradeOffer,
+                        "cancelOfferCount",
+                      );
+                    }).catch((err) => {
+                      this.manager.emit(
+                        "debug",
+                        "Can't auto-cancel offer #" + tradeOffer.id + ": " +
+                          err.message,
+                      );
+                    });
+                  },
+                );
               }
             }
-
-            if (this.manager.cancelOfferCountMinAge && Date.now() - oldest.updated!.getTime() < this.manager.cancelOfferCountMinAge) {
-              continue;
-            }
-
-            const offerid = oldest.id;
-            oldest.cancel().then(() => {
-              delete this.pollData.cancelTimes[offerid];
-              delete this.pollData.pendingCancelTimes[offerid];
-              this.manager.emit('sentOfferCanceled', oldest, 'cancelOfferCount');
-            }).catch(err => {
-              this.manager.emit(
-                  "debug",
-                  "Can't auto-cancel offer #" + offer.id + ": " + err.message,
-                )
-            });
-          } */
+          }
         }
 
         apiresp.receivedOffers.forEach((offer) => {
@@ -384,26 +418,27 @@ export class DataPoller {
             );
           }
 
-          this.pollData.received[offer.id] = offer.state;
-          this.pollData.timestamps[offer.id] = offer.created!.getTime() / 1000;
+          if (isNonTerminalState(offer)) {
+            this.pollData.received[offer.id] = offer.state;
+            this.pollData.timestamps[offer.id] = offer.updated!.getTime() /
+              1000;
+          } else {
+            this.deleteOldProps(offer.id);
+          }
         });
 
-        // TODO: move based on oldest non-terminal offer
-        // Find the latest update time
+        // TODO: Check if it's working as expected
+        // move historical cutoff based on oldest non-terminal offer
+        // because we have handled terminal ones already and not gonna do anything with them anymore
         if (!hasGlitchedOffer) {
-          let latest = this.pollData.offersSince || 0;
-
-          const setTheLatest = (offer: TradeOffer) => {
-            if (!offer?.updated) return;
-            const updated = Math.floor(offer.updated.getTime() / 1000);
-            if (updated > latest) {
-              latest = updated;
-            }
-          };
-          apiresp.sentOffers.forEach(setTheLatest);
-          apiresp.receivedOffers.forEach(setTheLatest);
-
-          this.pollData.offersSince = latest;
+          if (
+            apiresp.oldestNonTerminal &&
+            apiresp.oldestNonTerminal < apiresp.requestedAt
+          ) {
+            this.pollData.offersSince = apiresp.oldestNonTerminal;
+          } else {
+            this.pollData.offersSince = apiresp.requestedAt;
+          }
         }
 
         // at the end
@@ -460,7 +495,7 @@ export class DataPoller {
     const {
       filter = EOfferFilter.All,
       historicalCutoff = Math.floor(
-        new Date(Date.now() + 31536000000).getTime() / 1000,
+        new Date(Date.now() - 31536000000).getTime() / 1000,
       ),
     } = options || {};
 
@@ -487,18 +522,36 @@ export class DataPoller {
       "historical_only": filter === EOfferFilter.HistoricalOnly,
       "time_historical_cutoff": historicalCutoff,
     };
-
+    // set request time to 30 minutes prior to now.
+    // UNIX timestamp
+    const requestedAt = Math.floor((Date.now() / 1000) - 1800);
     const apiresp = await this.steamApi.fetch(
       new GetTradeOffers(getTraderOffersOptions),
     );
 
-    const sentPromises = apiresp?.response?.trade_offers_sent?.map((offer) =>
-      TradeOffer.from(this.manager, offer)
-    );
+    let oldestNonTerminalTimestamp = Infinity;
+
+    const sentPromises = apiresp?.response?.trade_offers_sent?.map((offer) => {
+      if (
+        offer.time_updated < oldestNonTerminalTimestamp &&
+        isNonTerminalState(offer)
+      ) {
+        oldestNonTerminalTimestamp = offer.time_updated;
+      }
+      return TradeOffer.from(this.manager, offer);
+    });
     let sentOffers: Array<TradeOffer> = [];
 
     const receivedPromises = apiresp?.response?.trade_offers_received?.map(
-      (offer) => TradeOffer.from(this.manager, offer),
+      (offer) => {
+        if (
+          offer.time_updated < oldestNonTerminalTimestamp &&
+          isNonTerminalState(offer)
+        ) {
+          oldestNonTerminalTimestamp = offer.time_updated;
+        }
+        return TradeOffer.from(this.manager, offer);
+      },
     );
     let receivedOffers: Array<TradeOffer> = [];
 
@@ -512,6 +565,12 @@ export class DataPoller {
     const result = {
       sentOffers,
       receivedOffers,
+      /** UNIX Timestamp */
+      oldestNonTerminal: Number.isFinite(oldestNonTerminalTimestamp)
+        ? oldestNonTerminalTimestamp
+        : undefined,
+      /** UNIX Timestamp */
+      requestedAt,
     };
 
     return result;
