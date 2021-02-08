@@ -38,6 +38,10 @@ export type TradeManagerOptions = {
    *    it's automatically canceled by the manager.
    *  This feature is disabled if omitted. All documentation for cancelTime applies. */
   pendingCancelTime?: number;
+  /** Optional. Once we have this many outgoing Active offers, the oldest will be automatically canceled. */
+  cancelOfferCount?: number;
+  /** Optional. If you're using cancelOfferCount, then offers must be at least this many milliseconds old in order to qualify for automatic cancellation. */
+  cancelOfferCountMinAge?: number;
 };
 
 export class TradeManager extends EventEmitter {
@@ -52,6 +56,8 @@ export class TradeManager extends EventEmitter {
   pendingSendOffersCount: number;
   cancelTime: number | undefined;
   pendingCancelTime: number | undefined;
+  cancelOfferCount: number | undefined;
+  cancelOfferCountMinAge: number | undefined;
 
   constructor(options: TradeManagerOptions) {
     super();
@@ -65,6 +71,8 @@ export class TradeManager extends EventEmitter {
       getDescriptions = false,
       cancelTime,
       pendingCancelTime,
+      cancelOfferCount,
+      cancelOfferCountMinAge,
     } = options;
 
     this.domain = domain;
@@ -74,6 +82,8 @@ export class TradeManager extends EventEmitter {
     this.pendingSendOffersCount = 0;
     this.cancelTime = cancelTime;
     this.pendingCancelTime = pendingCancelTime;
+    this.cancelOfferCount = cancelOfferCount;
+    this.cancelOfferCountMinAge = cancelOfferCountMinAge;
 
     if (language) {
       if (language == "szh") {
