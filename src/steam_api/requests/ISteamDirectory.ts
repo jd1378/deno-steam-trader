@@ -1,6 +1,6 @@
 // deno-lint-ignore-file camelcase
 
-import { Methods, ServiceRequest } from "./ServiceRequest.ts";
+import { Methods, ServiceRequest } from "./service_request.ts";
 
 abstract class ISteamDirectoryRequest extends ServiceRequest {
   constructor() {

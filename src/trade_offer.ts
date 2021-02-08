@@ -16,7 +16,7 @@ import {
 import { SteamID } from "../deps.ts";
 import { EConfirmationMethod } from "./enums/EConfirmationMethod.ts";
 import { ETradeOfferState } from "./enums/ETradeOfferState.ts";
-import { ServiceRequest } from "./steam_api/requests/ServiceRequest.ts";
+import type { ServiceRequest } from "./steam_api/requests/service_request.ts";
 import { hasNoName } from "./utils.ts";
 import { ETradeStatus } from "./enums/ETradeStatus.ts";
 

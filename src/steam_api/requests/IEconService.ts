@@ -3,7 +3,7 @@ import type { ETradeStatus } from "../../enums/ETradeStatus.ts";
 import { fastConcat } from "../../utils.ts";
 import { SteamEconItem } from "./../../econ_item.ts";
 
-import { Methods, ServiceRequest } from "./ServiceRequest.ts";
+import { Methods, ServiceRequest } from "./service_request.ts";
 
 abstract class IEconServiceRequest extends ServiceRequest {
   constructor() {

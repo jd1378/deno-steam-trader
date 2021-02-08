@@ -1,6 +1,6 @@
 import { SteamError } from "./../steam_error.ts";
 import { EResult } from "./../enums/EResult.ts";
-import { ServiceRequest } from "./requests/ServiceRequest.ts";
+import type { ServiceRequest } from "./requests/service_request.ts";
 import { wrapFetchWithHeaders } from "../../deps.ts";
 import { DEFAULT_USERAGENT } from "../fetch_utils.ts";
 
