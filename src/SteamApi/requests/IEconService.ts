@@ -1,5 +1,5 @@
 // deno-lint-ignore-file camelcase
-import type { ETradeOfferState } from "../../enums/ETradeOfferState.ts";
+import type { ETradeStatus } from "../../enums/ETradeStatus.ts";
 import { fastConcat } from "../../utils.ts";
 import { SteamEconItem } from "./../../EconItem.ts";
 
@@ -277,7 +277,7 @@ export type TradeDetails = {
   steamid_other: string;
   /** UNIX timestamp */
   time_init: number;
-  status: ETradeOfferState;
+  status: ETradeStatus;
   assets_received?: Array<TradeDetailAsset>;
   assets_given?: Array<TradeDetailAsset>;
 };
