@@ -509,13 +509,22 @@ export class TradeOffer {
     let receivedItems;
 
     if (this.manager.getDescriptions) {
-      // todo
+      const fromOfferItemOptions: FromOfferItemOptions = {
+        getDescriptions: this.manager.getDescriptions,
+        language: this.manager.languageName,
+        steamApi: this.manager.steamApi,
+      };
+      sentItems = trade.assets_given
+        ? await EconItem.fromList(trade.assets_given, fromOfferItemOptions)
+        : [] as EconItem[];
+      receivedItems = trade.assets_received
+        ? await EconItem.fromList(trade.assets_received, fromOfferItemOptions)
+        : [] as EconItem[];
     } else {
       sentItems = trade.assets_given || [] as TradeDetailAsset[];
       receivedItems = trade.assets_received || [] as TradeDetailAsset[];
     }
 
-    // TODO
     return {
       status: trade.status,
       sentItems,
