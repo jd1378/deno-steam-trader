@@ -25,6 +25,19 @@ export type TradeManagerOptions = {
   pollingOptions?: Omit<DataPollerOptions, "manager">;
   /** not implemented. do **NOT** use. */
   useProtobuf?: boolean;
+  /** The time, in milliseconds, that a sent offer can remain Active until it's automatically canceled by the manager.
+   *  This feature is disabled if omitted.
+   * 
+   * Note that this check is performed on polling, so it will only work as expected if timed polling is enabled.
+   * Also note that because polling is on a timer,
+   * offers will be canceled between `cancelTime` and `cancelTime + pollInterval` milliseconds after being created,
+   * assuming Steam is up.
+   */
+  cancelTime?: number;
+  /** Optional. The time, in milliseconds, that a sent offer can remain CreatedNeedsConfirmation until 
+   *    it's automatically canceled by the manager.
+   *  This feature is disabled if omitted. All documentation for cancelTime applies. */
+  pendingCancelTime?: number;
 };
 
 export class TradeManager extends EventEmitter {
@@ -37,6 +50,8 @@ export class TradeManager extends EventEmitter {
   private steamUser: SteamUser | undefined;
   getDescriptions: boolean;
   pendingSendOffersCount: number;
+  cancelTime: number | undefined;
+  pendingCancelTime: number | undefined;
 
   constructor(options: TradeManagerOptions) {
     super();
@@ -48,6 +63,8 @@ export class TradeManager extends EventEmitter {
       pollingOptions,
       useProtobuf,
       getDescriptions = false,
+      cancelTime,
+      pendingCancelTime,
     } = options;
 
     this.domain = domain;
@@ -55,6 +72,8 @@ export class TradeManager extends EventEmitter {
     this.language = language;
     this.languageName = "";
     this.pendingSendOffersCount = 0;
+    this.cancelTime = cancelTime;
+    this.pendingCancelTime = pendingCancelTime;
 
     if (language) {
       if (language == "szh") {
