@@ -122,7 +122,7 @@ export class DataPoller {
         return;
       }
 
-      // don't poll if we are not logged in to steam community
+      // don't poll if we don't have SteamID of this account.
       if (!this.manager.steamCommunity.steamID) {
         return;
       }
@@ -316,7 +316,7 @@ export class DataPoller {
         });
 
         if (this.manager.cancelOfferCount) {
-          // TODO: fix timestamps
+          // TODO make sure works fine
           const sentActive: Array<[string, number]> = apiresp.sentOffers.filter(
             (offer) => offer.state === ETradeOfferState.Active,
           ).map((offer) => [offer.id!, offer.state]);
@@ -427,7 +427,7 @@ export class DataPoller {
           }
         });
 
-        // TODO: Check if it's working as expected
+        // TODO make sure works fine
         // move historical cutoff based on oldest non-terminal offer
         // because we have handled terminal ones already and not gonna do anything with them anymore
         if (!hasGlitchedOffer) {

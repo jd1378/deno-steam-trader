@@ -298,8 +298,10 @@ export class TradeOffer {
     const body = await response.json();
 
     if (response.status !== 200) {
-      if (response.status == 401) {
-        // this.steamCommunity.login();
+      if (response.status === 401) {
+        // TODO
+        // SESSION EXPIRED:
+        // this.manager.steamCommunity.login();
         throw new Error("Not Logged In");
       }
 
