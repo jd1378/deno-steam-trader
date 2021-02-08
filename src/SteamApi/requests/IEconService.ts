@@ -1,4 +1,5 @@
 // deno-lint-ignore-file camelcase
+import type { ETradeOfferState } from "../../enums/ETradeOfferState.ts";
 import { fastConcat } from "../../utils.ts";
 import { SteamEconItem } from "./../../EconItem.ts";
 
@@ -260,6 +261,27 @@ export class GetTradeHoldDurations extends IEconServiceRequest {
   }
 }
 
+export type TradeDetailAsset = {
+  appid: number;
+  contextid: string;
+  assetid: string;
+  amount: string;
+  classid: string;
+  instanceid: string;
+  new_assetid: string;
+  new_contextid: string;
+};
+
+export type TradeDetails = {
+  tradeid: string;
+  steamid_other: string;
+  /** UNIX timestamp */
+  time_init: number;
+  status: ETradeOfferState;
+  assets_received?: Array<TradeDetailAsset>;
+  assets_given?: Array<TradeDetailAsset>;
+};
+
 /** Gets status for a specific trade */
 export class GetTradeStatus extends IEconServiceRequest {
   method = Methods.GET;
@@ -278,5 +300,21 @@ export class GetTradeStatus extends IEconServiceRequest {
       tradeid,
       ...options,
     };
+  }
+
+  responseStructure?: {
+    response?: {
+      trades?: Array<TradeDetails>;
+    };
+  };
+
+  postProcess(resp: GetTradeStatus["responseStructure"]) {
+    if (!resp?.response?.trades?.length) {
+      throw new Error("Malformed response");
+    }
+
+    if (resp.response.trades[0].tradeid !== this.getParams!.tradeid) {
+      throw new Error("Invalid trade returned in response. try again later.");
+    }
   }
 }
