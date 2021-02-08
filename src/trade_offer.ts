@@ -180,6 +180,7 @@ export class TradeOffer {
       new SteamID("[U:1:" + data.accountid_other + "]"),
     );
     await offer._update(data);
+    return offer;
   }
 
   async send(): Promise<ETradeOfferState> {
