@@ -268,7 +268,7 @@ export class GetTradeStatus extends IEconServiceRequest {
 
   constructor(
     tradeid: string,
-    options: {
+    options?: {
       get_descriptions?: boolean;
       language?: string;
     },
