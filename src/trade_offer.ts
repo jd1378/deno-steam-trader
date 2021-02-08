@@ -30,7 +30,7 @@ export function isNonTerminalState(offer: Offer | TradeOffer) {
 export class TradeOffer {
   manager: TradeManager;
   /** The other party in this offer, as a SteamID object */
-  readonly partner: SteamID;
+  partner?: SteamID;
   /** The trade offer's unique numeric ID, represented as a string */
   id: string | undefined;
   /** A message, possibly empty, included with the trade offer by its sender */
@@ -82,16 +82,20 @@ export class TradeOffer {
     this.manager = manager;
 
     if (typeof partner === "string") {
-      this.partner = new SteamID(partner);
-    } else {
+      if (partner !== " _internal_use_flag") {
+        this.partner = new SteamID(partner);
+      }
+    } else if (partner) {
       this.partner = partner;
     }
 
     this._token = token;
 
     if (
-      !this.partner.isValid || !this.partner.isValid() ||
-      this.partner.type != SteamID.Type.INDIVIDUAL
+      partner !== "_internal_use_flag" &&
+      (!this.partner ||
+        !this.partner.isValid() ||
+        this.partner.type !== SteamID.Type.INDIVIDUAL)
     ) {
       throw new Error("Invalid input SteamID " + this.partner);
     }
@@ -162,6 +166,9 @@ export class TradeOffer {
   /** do not use this method to update an offer. it is used internally. */
   private async _update(data: Offer) {
     this.id = data.tradeofferid.toString();
+    if (!this.partner) {
+      this.partner = new SteamID("[U:1:" + data.accountid_other + "]");
+    }
     this.message = data.message;
     this.state = data.trade_offer_state;
     const fromOfferItemOptions: FromOfferItemOptions = {
@@ -204,9 +211,26 @@ export class TradeOffer {
     return offer;
   }
 
+  static async fromOfferId(
+    manager: TradeManager,
+    offerid: string,
+  ) {
+    const offer = new TradeOffer(
+      manager,
+      "_internal_use_flag",
+    );
+    offer.id = offerid;
+    await offer.update();
+    return offer;
+  }
+
   async send(): Promise<ETradeOfferState> {
     if (this.id) {
       throw new Error("This offer has already been sent");
+    }
+
+    if (!this.partner) {
+      throw new Error("This offer has no partner (this should not happen)");
     }
 
     if (this.itemsToGive.length + this.itemsToReceive.length == 0) {
@@ -360,6 +384,12 @@ export class TradeOffer {
   ): Promise<"accepted" | "pending" | "escrow" | string> {
     if (!this.id) {
       throw new Error("Cannot accept an unsent offer");
+    }
+
+    if (!this.partner) {
+      throw new Error(
+        "Offer accept failed: this offer has no partner (this should not happen)",
+      );
     }
 
     if (this.state !== ETradeOfferState.Active) {
