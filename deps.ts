@@ -15,8 +15,9 @@ export { LFU } from "https://deno.land/x/velo@0.1.5/mod.ts";
 export {
   Cookie,
   CookieJar,
+  CookieOptions,
   wrapFetch as wrapFetchWithCookieJar,
-} from "https://deno.land/x/another_cookiejar@v2.2.3/mod.ts";
+} from "https://deno.land/x/another_cookiejar@v2.2.4/mod.ts";
 
 export { wrapFetch as wrapFetchWithHeaders } from "https://deno.land/x/fetch_goody@v1.2.1/mod.ts";
 
