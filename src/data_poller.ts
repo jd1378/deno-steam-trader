@@ -429,7 +429,9 @@ export class DataPoller {
 
         // TODO make sure works fine
         // move historical cutoff based on oldest non-terminal offer
-        // because we have handled terminal ones already and not gonna do anything with them anymore
+        // this should work because in the poll we are checking for any changes after offerSince,
+        // after successfully handling all terminal states (meaning theres no changes after the state),
+        // there should be no changes up to our request time or the oldest updated timestamp of offers inside.
         if (!hasGlitchedOffer) {
           if (
             apiresp.oldestNonTerminal &&
