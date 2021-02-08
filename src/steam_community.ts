@@ -19,7 +19,7 @@ export type SteamCommunityOptions = {
   languageName: string;
   username?: string;
   password?: string;
-  sharedSecret?: string;
+  sharedSecret?: string | ((username: string) => string | Promise<string>);
   saveCookies?: (
     cookieJar: CookieJar,
     username: string,
@@ -37,7 +37,7 @@ export type LoginOptions = {
   /**
    * automatically generates totp from sharedSecret
    */
-  sharedSecret?: string;
+  sharedSecret?: SteamCommunityOptions["sharedSecret"];
   loginFriendlyName?: string;
   /** Provide this next time you are loggin in if you received "CAPTCHA" error. */
   captcha?: string;
@@ -74,7 +74,7 @@ export class SteamCommunity extends EventEmitter {
   steamID: SteamID | undefined;
   username: string | undefined;
   password: string | undefined;
-  private sharedSecret: string | undefined;
+  private sharedSecret: SteamCommunityOptions["sharedSecret"] | undefined;
   private loadedCookies: boolean;
   private loggingIn: boolean;
   private loadCookies;
@@ -358,7 +358,11 @@ export class SteamCommunity extends EventEmitter {
       if (options.twoFactorCode) {
         twoFactorCode = options.twoFactorCode;
       } else if (this.sharedSecret) {
-        twoFactorCode = generateAuthCode(this.sharedSecret);
+        if (typeof this.sharedSecret === "string") {
+          twoFactorCode = generateAuthCode(this.sharedSecret);
+        } else {
+          twoFactorCode = await this.sharedSecret(this.username);
+        }
       }
 
       const data = new URLSearchParams({
