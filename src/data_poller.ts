@@ -475,6 +475,10 @@ export class DataPoller {
 
   private async tryLoadPollData() {
     if (!this.loadedPollData && this.loadPollData) {
+      this.manager.emit(
+        "debug",
+        "loading poll data",
+      );
       let loadedData;
       try {
         loadedData = await this.loadPollData(
