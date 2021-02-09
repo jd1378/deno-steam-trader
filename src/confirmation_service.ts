@@ -71,7 +71,7 @@ export class ConfirmationService {
     };
 
     if (req.method == "GET") {
-      req.qs = params as string[]; // handle by doConfirmationOperation
+      req.qs = params as Record<string, string>; // handle by doConfirmationOperation
     } else {
       req.form = params;
     }
