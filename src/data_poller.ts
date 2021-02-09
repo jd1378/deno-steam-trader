@@ -170,6 +170,12 @@ export class DataPoller {
         filter: fullUpdate ? EOfferFilter.All : EOfferFilter.ActiveOnly,
         historicalCutoff: offersSince,
       };
+      this.manager.emit(
+        "debug",
+        `Doing trade offer poll since ${offersSince}${
+          fullUpdate ? " (" + fullUpdate + ")" : ""
+        }`,
+      );
       const apiresp = await this.getOffers(getOffersOptions);
       let hasGlitchedOffer = false;
 
