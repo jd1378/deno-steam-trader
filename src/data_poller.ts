@@ -141,13 +141,6 @@ export class DataPoller {
     Object.entries(this.pollData.sent).forEach((entry) =>
       this.pruneOfferEntry(entry)
     );
-    Object.entries(this.pollData.timestamps).forEach((entry) => {
-      if (
-        !(entry[0] in this.pollData.sent || entry[0] in this.pollData.received)
-      ) {
-        this.deleteOldProps(entry[0]);
-      }
-    });
   }
 
   async doPoll(doFullUpdate?: boolean) {
