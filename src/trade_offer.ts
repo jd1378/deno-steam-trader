@@ -652,7 +652,9 @@ export class TradeOffer {
     this.removeTheirItem({ appid: 313, contextid: "2", assetid: "1213" });
   }
 
-  /** throws error if offer is not found for confirmation or offer is not sent or does not need confirmation. */
+  /** Confirms an offer that is in `CreatedNeedsConfirmation` state.
+   * 
+   * throws error if offer is unsent, not in `CreatedNeedsConfirmation` state or confirmation object for offerid is not found */
   async confirm() {
     if (!this.id) {
       throw new Error("Cannot confirm an unsent offer");
