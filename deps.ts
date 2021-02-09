@@ -9,7 +9,8 @@ export {
   generateAuthCode,
   generateConfirmationCode,
   getDeviceID,
-} from "https://deno.land/x/steamtotp@v2.0.0/mod.ts";
+  getLocalUnixTime,
+} from "https://deno.land/x/steamtotp@v2.1.0/mod.ts";
 export { LFU } from "https://deno.land/x/velo@0.1.5/mod.ts";
 
 export {
@@ -20,7 +21,10 @@ export {
 
 export type { CookieOptions } from "https://deno.land/x/another_cookiejar@v2.2.5/mod.ts";
 
-export { wrapFetch as wrapFetchWithHeaders } from "https://deno.land/x/fetch_goody@v2.0.0/mod.ts";
+export type { ExtendedRequestInit } from "https://deno.land/x/fetch_goody@v2.0.0/mod.ts";
+export {
+  wrapFetch as wrapFetchWithHeaders,
+} from "https://deno.land/x/fetch_goody@v2.0.0/mod.ts";
 
 export { RSA } from "https://deno.land/x/god_crypto@v1.4.9/src/rsa/mod.ts";
 export { AES } from "https://deno.land/x/god_crypto@v1.4.9/src/aes/mod.ts";
