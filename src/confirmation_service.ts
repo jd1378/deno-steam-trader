@@ -21,7 +21,7 @@ export type RequestOptions = {
   /**
    * The confirmation key that was generated using the preceding time and the tag "allow" (if accepting) or "cancel" (if not accepting)
    */
-  key: Array<string> | string;
+  key: string;
   /** the tag string */
   tag: string;
   /** parameters to send in body */
@@ -73,7 +73,18 @@ export class ConfirmationService {
     if (req.method == "GET") {
       req.qs = params as Record<string, string>; // handle by doConfirmationOperation
     } else {
-      req.form = params;
+      let urlEncoded = "";
+      for (const [key, value] of Object.entries(params)) {
+        if (Array.isArray(value)) {
+          for (const val of value) {
+            urlEncoded += `${key}[]=${encodeURIComponent(val)}&`;
+          }
+        } else {
+          urlEncoded += `${key}=${encodeURIComponent(value)}&`;
+        }
+      }
+      urlEncoded = urlEncoded.substring(0, urlEncoded.length - 1);
+      req.body = urlEncoded;
     }
 
     return this.community.fetch(
