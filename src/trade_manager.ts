@@ -176,7 +176,7 @@ export class TradeManager extends EventEmitter {
       throw new Error("Invalid partner ID");
     }
 
-    const offer = new TradeOffer(this, partner, token);
+    const offer = new TradeOffer(this, partnerSteamID, token);
     offer.isOurOffer = true;
     offer.fromRealTimeTrade = false;
     return offer;
