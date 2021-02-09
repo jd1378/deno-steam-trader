@@ -466,6 +466,8 @@ export class DataPoller {
       this.manager.emit("pollFailure", err);
     } finally {
       this.lastPoll = Date.now();
+      this.polling = false;
+      this.defferedPoll.resolve();
       // repeat
       if (!this.stopped) {
         if (this.interval >= 0) {
@@ -476,8 +478,6 @@ export class DataPoller {
           setTimeout(this.doPoll.bind(this), delay);
         }
       }
-      this.polling = false;
-      this.defferedPoll.resolve();
     }
   }
 
