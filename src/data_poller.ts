@@ -269,11 +269,12 @@ export class DataPoller {
 
           if (offer.state === ETradeOfferState.Active) {
             // The offer is still Active, and we sent it. See if it's time to cancel it automatically.
-            const cancelTime = this.pollData.cancelTimes[offer.id] ||
-              this.manager.cancelTime;
+            const cancelTime = this.pollData.cancelTimes[offer.id] === undefined
+              ? this.manager.cancelTime
+              : this.pollData.cancelTimes[offer.id];
 
             if (
-              (cancelTime !== undefined && cancelTime !== 0) &&
+              cancelTime &&
               (Date.now() - offer.updated!.getTime() >= cancelTime)
             ) {
               const offerid = offer.id;
@@ -294,11 +295,12 @@ export class DataPoller {
           ) {
             // The offer needs to be confirmed to be sent. Let's see if the maximum time has elapsed before we cancel it.
             const pendingCancelTime =
-              this.pollData.pendingCancelTimes[offer.id] ||
-              this.manager.pendingCancelTime;
+              this.pollData.pendingCancelTimes[offer.id] === undefined
+                ? this.manager.pendingCancelTime
+                : this.pollData.pendingCancelTimes[offer.id];
 
             if (
-              (pendingCancelTime !== undefined && pendingCancelTime !== 0) &&
+              pendingCancelTime &&
               (Date.now() - offer.created!.getTime() >= pendingCancelTime)
             ) {
               const offerid = offer.id;
