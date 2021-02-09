@@ -21,7 +21,7 @@ import { hasNoName } from "./utils.ts";
 import { ETradeStatus } from "./enums/ETradeStatus.ts";
 
 const NON_TERMINAL_OFFER_STATES = [
-  ETradeOfferState.Accepted,
+  ETradeOfferState.Active,
   ETradeOfferState.CreatedNeedsConfirmation,
   ETradeOfferState.InEscrow,
 ];
