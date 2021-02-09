@@ -322,10 +322,10 @@ export class TradeOffer {
 
       // poll data will be saved on next poll if saving method is defined and polling is started
       this.manager.dataPoller.pollData.sent[this.id] = this.state;
-      if (this.cancelTime) {
+      if (this.cancelTime !== undefined) {
         this.manager.dataPoller.pollData.cancelTimes[this.id] = this.cancelTime;
       }
-      if (this.pendingCancelTime) {
+      if (this.pendingCancelTime !== undefined) {
         this.manager.dataPoller.pollData.pendingCancelTimes[this.id] =
           this.pendingCancelTime;
       }

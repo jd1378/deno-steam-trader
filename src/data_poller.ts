@@ -273,7 +273,7 @@ export class DataPoller {
               this.manager.cancelTime;
 
             if (
-              cancelTime &&
+              (cancelTime !== undefined && cancelTime !== 0) &&
               (Date.now() - offer.updated!.getTime() >= cancelTime)
             ) {
               const offerid = offer.id;
@@ -290,8 +290,7 @@ export class DataPoller {
           }
 
           if (
-            offer.state == ETradeOfferState.CreatedNeedsConfirmation &&
-            this.manager.pendingCancelTime
+            offer.state == ETradeOfferState.CreatedNeedsConfirmation
           ) {
             // The offer needs to be confirmed to be sent. Let's see if the maximum time has elapsed before we cancel it.
             const pendingCancelTime =
@@ -299,7 +298,7 @@ export class DataPoller {
               this.manager.pendingCancelTime;
 
             if (
-              pendingCancelTime &&
+              (pendingCancelTime !== undefined && pendingCancelTime !== 0) &&
               (Date.now() - offer.created!.getTime() >= pendingCancelTime)
             ) {
               const offerid = offer.id;
