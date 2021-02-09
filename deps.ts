@@ -10,7 +10,7 @@ export {
   generateConfirmationKey,
   getDeviceID,
   getLocalUnixTime,
-} from "https://deno.land/x/steamtotp@v3.0.0/mod.ts";
+} from "https://deno.land/x/steamtotp@v3.0.1/mod.ts";
 export { LFU } from "https://deno.land/x/velo@0.1.5/mod.ts";
 
 export {
