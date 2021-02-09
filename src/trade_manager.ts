@@ -126,6 +126,11 @@ export class TradeManager extends EventEmitter {
     }
   }
 
+  /** returns steamCommunity instance's steamID. undefined unitl successful login */
+  get steamID() {
+    return this.steamCommunity.steamID;
+  }
+
   /**
    * Logins to steam community, get apikey if not set already and set it for steam api use. may throw errors.
    * 
