@@ -424,7 +424,7 @@ export class TradeOffer {
     const body = await response.json();
 
     if (response.status !== 200) {
-      if (response.status == 403) {
+      if (response.status === 403) {
         const err = new Error("Not Logged In");
         this.manager.steamCommunity._notifySessionExpired(err);
         throw err;
