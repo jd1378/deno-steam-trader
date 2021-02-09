@@ -14,6 +14,9 @@ import {
 } from "../deps.ts";
 import { DEFAULT_USERAGENT } from "./fetch_utils.ts";
 import { EResult } from "./enums/EResult.ts";
+import { EconItem } from "./econ_item.ts";
+import { SteamError } from "./steam_error.ts";
+import { fastConcatMU } from "./utils.ts";
 
 export type SteamCommunityOptions = {
   manager: TradeManager;
@@ -257,13 +260,17 @@ export class SteamCommunity {
     return randomBytes(12).toString("hex");
   }
 
-  getUserInventoryContents(options: {
+  /**
+   * totalInventoryCount may not be equal to sum of currency and inventory lengths if inventory changes mid request.
+   */
+  async getUserInventoryContents(options: {
     userID: SteamID | string;
     appID: number;
     contextID: string;
     tradableOnly?: boolean;
   }) {
     let { userID, appID, contextID, tradableOnly = false } = options;
+
     if (
       userID === undefined || appID === undefined || contextID === undefined
     ) {
@@ -273,9 +280,136 @@ export class SteamCommunity {
     if (typeof userID === "string") {
       userID = new SteamID(userID);
     }
+    const currency: EconItem[] = [];
+    const inventory: EconItem[] = [];
+    let totalInventoryCount = 0;
+    let inv;
+    do {
+      inv = await this.fetchUserInventoryPage({
+        userID,
+        appID,
+        contextID,
+        startAssetId: inv ? inv.lastAssetId : undefined,
+      });
+      fastConcatMU(currency, inv.currency);
+      fastConcatMU(inventory, inv.inventory);
+      totalInventoryCount = inv.totalInventoryCount; // may change while retrieving
+    } while (inv.moreItems);
 
-    const pos1 = 1;
-    // TODO
+    return {
+      currency,
+      inventory,
+      totalInventoryCount,
+    };
+  }
+
+  private async fetchUserInventoryPage(
+    options: {
+      userID: SteamID;
+      appID: number;
+      contextID: string;
+      startAssetId?: string;
+      tradableOnly?: boolean;
+    },
+  ): Promise<{
+    currency: EconItem[];
+    inventory: EconItem[];
+    totalInventoryCount: number;
+    moreItems: boolean;
+    lastAssetId: undefined | string;
+  }> {
+    const { appID, userID, contextID, startAssetId, tradableOnly = false } =
+      options;
+    const resp = await this.fetch(
+      `https://steamcommunity.com/inventory/${userID.getSteamID64()}/${appID}/${contextID}`,
+      {
+        headers: {
+          "Referer":
+            `https://steamcommunity.com/profiles/${userID.getSteamID64()}/inventory`,
+        },
+        redirect: "manual",
+        qs: {
+          "l": this.languageName,
+          "count": "5000", // Max items per 'page'
+          "start_assetid": startAssetId?.toString(),
+        },
+      },
+    );
+    const body = await resp.json();
+
+    if (resp.status !== 200) {
+      if (resp.status === 403 && resp.body === null) {
+        if (userID.toString() === this.steamID?.toString()) {
+          // we shouldn't get 403 for our own profile
+          // TODO
+          // SESSION EXPIRED:
+          // this.manager.steamCommunity.login();
+        }
+        throw new Error(
+          "Profile for id " + this.steamID?.toString() + " is private.",
+        );
+      }
+
+      if (resp.status === 500 && body && body.error) {
+        let message = body.error;
+        let eresult = -1;
+        const match = body.error.match(/^(.+) \((\d+)\)$/);
+        if (match) {
+          message = match[1];
+          eresult = match[2];
+        }
+        throw new SteamError(message, { eresult });
+      }
+
+      throw new Error("unknown http error: " + resp.status);
+    }
+
+    if (!body || !body.success || !body.assets || !body.descriptions) {
+      if (body) {
+        // Dunno if the error/Error property even exists on this new endpoint
+        throw new Error(body.error || body.Error || "Malformed response");
+      } else {
+        throw new Error("Malformed response");
+      }
+    }
+
+    const currency: EconItem[] = [];
+    const inventory: EconItem[] = [];
+
+    if (body && body.success && body.total_inventory_count === 0) {
+      // Empty inventory
+      return {
+        currency,
+        inventory,
+        totalInventoryCount: 0,
+        moreItems: false,
+        lastAssetId: undefined,
+      };
+    }
+
+    const items = EconItem.fromAssetsWithDescriptions(
+      body.assets,
+      body.descriptions,
+    );
+
+    items.forEach((item) => {
+      if (tradableOnly && !item.tradable) {
+        return;
+      }
+      if (item.is_currency) {
+        currency.push(item);
+      } else {
+        inventory.push(item);
+      }
+    });
+
+    return {
+      currency,
+      inventory,
+      totalInventoryCount: body.total_inventory_count as number || 0,
+      moreItems: !!body.more_items,
+      lastAssetId: body.last_assetid as string,
+    };
   }
 
   /**
@@ -290,12 +424,10 @@ export class SteamCommunity {
     if (this.loggingIn) return;
     this.loggingIn = true;
     try {
-      // TODO correctly load cookies conditionally
       await this.tryLoadCookies();
 
       const { isLoggedIn } = await this.getLoginStatus();
       if (isLoggedIn) return;
-      // END OF TODO
 
       if (options) {
         this.setLoginDefaults(options);
