@@ -155,7 +155,7 @@ export class SteamCommunity extends EventEmitter {
 
           if (steamID64Match) {
             this.steamID = new SteamID(steamID64Match[1]);
-            this.emit("debug", "restored steamid from cookies");
+            this.emit("debug", "restored steamid from cookies", this.steamID);
           } else {
             this.emit("debug", "Cannot get steamid from cookies");
           }
@@ -433,6 +433,11 @@ export class SteamCommunity extends EventEmitter {
         if (steamLoginCV) {
           this.steamID = new SteamID(
             decodeURIComponent(steamLoginCV).split("||")[0],
+          );
+          this.emit(
+            "debug",
+            "login successful for " + this.username,
+            this.steamID,
           );
         } else {
           throw new Error("Cannot get steamid from cookies");
