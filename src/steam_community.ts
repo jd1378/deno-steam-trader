@@ -9,14 +9,12 @@ import {
   RSA,
   RSAKey,
   SteamID,
-  wrapFetchWithCookieJar,
-  wrapFetchWithHeaders,
 } from "../deps.ts";
-import { DEFAULT_USERAGENT } from "./fetch_utils.ts";
 import { EResult } from "./enums/EResult.ts";
 import { EconItem } from "./econ_item.ts";
 import { SteamError } from "./steam_error.ts";
 import { fastConcatMU } from "./utils.ts";
+import { getFetchAndCookieJar } from "./steam_community_fetch.ts";
 
 export type SteamCommunityOptions = {
   manager: TradeManager;
@@ -75,7 +73,7 @@ export type LoginAttemptData = {
 // DoctorMcKay/node-steamcommunity was at 3.42.0 at the time of writing this.
 export class SteamCommunity {
   languageName: string;
-  private cookieJar: CookieJar;
+  cookieJar: CookieJar;
   private manager: TradeManager;
   public fetch;
   private lastLoginAttempt: LoginAttemptData;
@@ -106,14 +104,9 @@ export class SteamCommunity {
       this.loadCookies = options.loadCookies;
     }
 
-    this.cookieJar = new CookieJar();
-    const wrappedWithCookiesFetch = wrapFetchWithCookieJar({
-      cookieJar: this.cookieJar,
-    });
-    this.fetch = wrapFetchWithHeaders({
-      fetchFn: wrappedWithCookiesFetch,
-      userAgent: DEFAULT_USERAGENT,
-    });
+    const { cookieJar, fetch } = getFetchAndCookieJar(this);
+    this.cookieJar = cookieJar;
+    this.fetch = fetch;
   }
 
   setLoginDefaults(
@@ -220,7 +213,7 @@ export class SteamCommunity {
             method: "POST",
             body: reqBody,
           },
-        );
+        ).then((r) => r.text());
         secondCall = true;
         return await sendRequest();
       } else {
@@ -340,10 +333,7 @@ export class SteamCommunity {
     if (resp.status !== 200) {
       if (resp.status === 403 && resp.body === null) {
         if (userID.toString() === this.steamID?.toString()) {
-          // we shouldn't get 403 for our own profile
-          // TODO
-          // SESSION EXPIRED:
-          // this.manager.steamCommunity.login();
+          this._notifySessionExpired(new Error("Not Logged In"));
         }
         throw new Error(
           "Profile for id " + this.steamID?.toString() + " is private.",
@@ -690,7 +680,9 @@ export class SteamCommunity {
       token?: string;
     } = await resp.json();
     if (!body.logged_in) {
-      throw new Error("Not Logged In");
+      const err = new Error("Not Logged In");
+      this._notifySessionExpired(err);
+      throw err;
     }
 
     if (!body.steamid || !body.account_name || !body.token) {
@@ -702,5 +694,13 @@ export class SteamCommunity {
       "accountName": body.account_name,
       "webLogonToken": body.token,
     };
+  }
+
+  _notifySessionExpired(err: Error) {
+    this.manager.emit("sessionExpired", err);
+  }
+
+  _notifyFamilyViewRestricted(err: Error) {
+    this.manager.emit("familyViewRestricted", err);
   }
 }

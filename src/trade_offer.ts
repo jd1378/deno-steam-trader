@@ -313,10 +313,9 @@ export class TradeOffer {
 
     if (response.status !== 200) {
       if (response.status === 401) {
-        // TODO
-        // SESSION EXPIRED:
-        // this.manager.steamCommunity.login();
-        throw new Error("Not Logged In");
+        const err = new Error("Not Logged In");
+        this.manager.steamCommunity._notifySessionExpired(err);
+        throw err;
       }
 
       throw new Error("HTTP error " + response.status);
@@ -438,10 +437,9 @@ export class TradeOffer {
 
     if (response.status !== 200) {
       if (response.status == 403) {
-        // TODO
-        // SESSION EXPIRED:
-        // this.manager.steamCommunity.login();
-        throw new Error("Not Logged In");
+        const err = new Error("Not Logged In");
+        this.manager.steamCommunity._notifySessionExpired(err);
+        throw err;
       } else {
         throw new SteamError("HTTP error " + response.status, {
           eresult: body?.eresult || -1,
