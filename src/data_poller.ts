@@ -334,18 +334,22 @@ export class DataPoller {
 
         if (this.manager.cancelOfferCount) {
           // TODO make sure works fine
-          const sentActive: Array<[string, number]> = apiresp.sentOffers.filter(
-            (offer) => offer.state === ETradeOfferState.Active,
-          ).map((offer) => [offer.id!, offer.state]);
-          const polledSentActive = Object.entries(this.pollData.sent).filter((
-            [_, state],
-          ) => state === ETradeOfferState.Active);
-          fastConcat(sentActive, polledSentActive);
+          let allActive;
+          {
+            const sentActive: Array<[string, number]> = apiresp.sentOffers
+              .filter(
+                (offer) => offer.state === ETradeOfferState.Active,
+              ).map((offer) => [offer.id!, offer.state]);
+            const polledSentActive = Object.entries(this.pollData.sent).filter((
+              [_, state],
+            ) => state === ETradeOfferState.Active);
+            allActive = fastConcat(sentActive, polledSentActive);
+          }
 
-          if (sentActive.length >= this.manager.cancelOfferCount) {
-            const cancelThisMany = sentActive.length -
+          if (allActive.length >= this.manager.cancelOfferCount) {
+            const cancelThisMany = allActive.length -
               this.manager.cancelOfferCount;
-            sentActive.sort((a, b) => {
+            allActive.sort((a, b) => {
               // if a is older (meaning number is smaller)
               // it will move to start of array
               // because smaller minus bigger is always smaller than 0
@@ -353,8 +357,8 @@ export class DataPoller {
                 this.pollData.timestamps[b[0]];
             });
             for (let i = 0; i < cancelThisMany; i++) {
-              if (sentActive[i] && sentActive[i][0]) {
-                const offerid = sentActive[i][0];
+              if (allActive[i] && allActive[i][0]) {
+                const offerid = allActive[i][0];
                 if (
                   this.manager.cancelOfferCountMinAge &&
                   Date.now() - this.pollData.timestamps[offerid] <
