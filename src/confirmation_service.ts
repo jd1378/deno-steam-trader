@@ -21,11 +21,11 @@ export type RequestOptions = {
   /**
    * The confirmation key that was generated using the preceding time and the tag "allow" (if accepting) or "cancel" (if not accepting)
    */
-  key: string;
+  key: Array<string> | string;
   /** the tag string */
   tag: string;
   /** parameters to send in body */
-  params?: Record<string, string>;
+  params?: Record<string, string | Array<string>>;
 };
 
 export type ConfirmOperation = "allow" | "cancel";
@@ -73,7 +73,8 @@ export class ConfirmationService {
     };
 
     if (req.method == "GET") {
-      req.qs = params;
+      // because its not a "multiajaxop" as we check it above
+      req.qs = params as Record<string, string>;
     } else {
       req.form = params;
     }
@@ -102,13 +103,13 @@ export class ConfirmationService {
     }
   }
 
-  private async getConfirmations() {
+  private async getConfirmations(timeForKey?: number) {
     if (this.retrieveConfirmationsDeffer) {
       await this.retrieveConfirmationsDeffer;
     }
     this.retrieveConfirmationsDeffer = new Deferred();
     try {
-      const time = getLocalUnixTime() + this.localOffset++;
+      const time = timeForKey || (getLocalUnixTime() + this.localOffset++);
       const key = await this.getKey(time, "conf");
       const resp = await this.request({
         url: "conf",
@@ -222,24 +223,27 @@ export class ConfirmationService {
     return found;
   }
 
-  private async respondToOffer(offerid: string, operation: ConfirmOperation) {
-    if (operation !== "allow" && operation !== "cancel") {
-      throw new Error("Invalid confirm operation");
-    }
-    const cobj = await this.findOrGetConfirmation(offerid);
-    if (!cobj) {
-      throw new Error("Cannot find confirmation object with this offerid");
-    }
+  private async doConfirmationOperation(
+    options: {
+      confIds: Array<string> | string;
+      confKeys: Array<string> | string;
+      operation: ConfirmOperation;
+    },
+  ) {
+    const { confIds, confKeys, operation } = options;
+    const multiOperation = Array.isArray(confIds) && Array.isArray(confKeys);
+    const time = getLocalUnixTime() + this.localOffset++;
+    const operationKey = await this.getKey(time, operation);
 
     const resp = await this.request({
-      url: "ajaxop", // "multiajaxop" for array cid, documented but not used
+      url: multiOperation ? "multiajaxop" : "ajaxop",
       time: getLocalUnixTime() + this.localOffset++,
-      key: cobj.key,
+      key: operationKey,
       tag: operation,
       params: {
         op: operation,
-        cid: cobj.id,
-        ck: cobj.key,
+        cid: confIds,
+        ck: confKeys,
       },
     }).then((r) => r.json());
 
@@ -251,7 +255,23 @@ export class ConfirmationService {
       throw new Error(resp.message);
     }
 
-    throw new Error("Could not act on confirmation");
+    throw new Error("doing confirmation failed for unknown reasons");
+  }
+
+  private async respondToOffer(offerid: string, operation: ConfirmOperation) {
+    if (operation !== "allow" && operation !== "cancel") {
+      throw new Error("Invalid confirm operation");
+    }
+    const cobj = await this.findOrGetConfirmation(offerid);
+    if (!cobj) {
+      throw new Error("Cannot find confirmation object with this offerid");
+    }
+
+    await this.doConfirmationOperation({
+      confIds: cobj.id,
+      confKeys: cobj.key,
+      operation: operation,
+    });
   }
 
   allowOffer(offerid: string) {
@@ -260,5 +280,16 @@ export class ConfirmationService {
 
   cancelOffer(offerid: string) {
     return this.respondToOffer(offerid, "cancel");
+  }
+
+  async cancelAllConfirmations() {
+    await this.getConfirmations();
+    if (this.lastConfirmationList.length) {
+      await this.doConfirmationOperation({
+        confIds: this.lastConfirmationList.map((cobj) => cobj.id),
+        confKeys: this.lastConfirmationList.map((cobj) => cobj.key),
+        operation: "cancel",
+      });
+    }
   }
 }
