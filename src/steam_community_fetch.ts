@@ -5,6 +5,7 @@ import {
 } from "../deps.ts";
 import { DEFAULT_USERAGENT } from "./fetch_utils.ts";
 import type { SteamCommunity } from "./steam_community.ts";
+import { throwIfHasError } from "./steam_error.ts";
 
 export function getFetchAndCookieJar(community: SteamCommunity) {
   const cookieJar = new CookieJar();
@@ -18,7 +19,7 @@ export function getFetchAndCookieJar(community: SteamCommunity) {
     validator: async function communityResponseValidator(response: Response) {
       const responseText = await response.clone().text(); // allow for subsequent reads
       checkHTTPError(community, response, responseText);
-      checkCommunityError(community, responseText);
+      checkCommunityError(community, response, responseText);
       checkTradeError(responseText);
     },
   });
@@ -55,15 +56,11 @@ function checkHTTPError(
     community._notifyFamilyViewRestricted(err);
     throw err;
   }
-
-  if (response.status >= 400) {
-    err = new Error("HTTP error " + response.status);
-    throw err;
-  }
 }
 
 function checkCommunityError(
   community: SteamCommunity,
+  response: Response,
   responseText: string | undefined,
 ) {
   if (
@@ -81,6 +78,26 @@ function checkCommunityError(
     const err = new Error("Not Logged In");
     community._notifySessionExpired(err);
     throw err;
+  }
+
+  if (response.status === 401) {
+    const err = new Error("Not Logged In");
+    community._notifySessionExpired(err);
+    throw err;
+  }
+
+  let jsonParsed;
+  try {
+    jsonParsed = JSON.parse(responseText!);
+  } catch {
+    // silent
+  }
+  if (jsonParsed) {
+    throwIfHasError(jsonParsed);
+  }
+
+  if (response.status > 403) {
+    throw new Error("HTTP error " + response.status);
   }
 }
 
