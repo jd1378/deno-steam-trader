@@ -118,20 +118,15 @@ export class DataPoller {
 
   private pruneOfferEntry(
     entry: [string, number],
-    lookupKey: "sent" | "received",
   ) {
     const [offerid, offerState] = entry;
-
-    if (offerid in this.pollData[lookupKey]) {
-      if (
-        isNonTerminalState(offerState) ||
-        (this.pollData.timestamps[offerid] &&
-          this.pollData.offersSince - 1800 < this.pollData.timestamps[offerid])
-      ) {
-        return;
-      }
+    if (
+      isNonTerminalState(offerState) ||
+      (this.pollData.timestamps[offerid] &&
+        this.pollData.offersSince - 1800 < this.pollData.timestamps[offerid])
+    ) {
+      return;
     }
-
     this.manager.emit(
       "debug",
       "cleaning offerid " + offerid + " from pollData",
@@ -141,11 +136,18 @@ export class DataPoller {
 
   private tryDeleteOldProps() {
     Object.entries(this.pollData.received).forEach((entry) =>
-      this.pruneOfferEntry(entry, "received")
+      this.pruneOfferEntry(entry)
     );
     Object.entries(this.pollData.sent).forEach((entry) =>
-      this.pruneOfferEntry(entry, "sent")
+      this.pruneOfferEntry(entry)
     );
+    Object.entries(this.pollData.timestamps).forEach((entry) => {
+      if (
+        !(entry[0] in this.pollData.sent || entry[0] in this.pollData.received)
+      ) {
+        this.deleteOldProps(entry[0]);
+      }
+    });
   }
 
   async doPoll(doFullUpdate?: boolean) {
