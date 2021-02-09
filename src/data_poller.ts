@@ -173,7 +173,7 @@ export class DataPoller {
       this.manager.emit(
         "debug",
         `Doing trade offer poll since ${offersSince}${
-          fullUpdate ? " (" + fullUpdate + ")" : ""
+          fullUpdate ? " (full update)" : ""
         }`,
       );
       const apiresp = await this.getOffers(getOffersOptions);
