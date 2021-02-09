@@ -147,6 +147,29 @@ export class TradeOffer {
     this._token = token;
   }
 
+  counter() {
+    if (this.state !== ETradeOfferState.Active) {
+      throw new Error("Cannot counter a non-active offer.");
+    }
+
+    const offer = this.duplicate();
+    offer.countering = this.id;
+    return offer;
+  }
+
+  duplicate() {
+    if (this.state !== ETradeOfferState.Active) {
+      throw new Error("Cannot duplicate a non-active offer.");
+    }
+
+    const offer = new TradeOffer(this.manager, this.partner!, this._token);
+    offer.itemsToGive = this.itemsToGive.slice();
+    offer.itemsToReceive = this.itemsToReceive.slice();
+    offer.isOurOffer = true;
+    offer.fromRealTimeTrade = false;
+    return offer;
+  }
+
   isGlitched() {
     if (!this.id) {
       // not sent yet
