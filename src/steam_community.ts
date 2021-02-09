@@ -121,7 +121,6 @@ export class SteamCommunity extends EventEmitter {
     this.sharedSecret = options.sharedSecret || this.sharedSecret;
   }
 
-  // TODO: save and load cookies properly
   async trySaveCookies() {
     if (this.saveCookies && this.username) {
       try {
@@ -426,7 +425,7 @@ export class SteamCommunity extends EventEmitter {
         throw new Error(resp.message || "Unknown error");
       } else {
         this.getSessionID();
-        await this.tryLoadCookies();
+        await this.trySaveCookies();
         const steamLoginCV = this.cookieJar.getCookie({
           name: "steamLoginSecure",
         })
