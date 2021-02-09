@@ -367,15 +367,6 @@ export class SteamCommunity {
       throw new Error("unknown http error: " + resp.status);
     }
 
-    if (!body || !body.success || !body.assets || !body.descriptions) {
-      if (body) {
-        // Dunno if the error/Error property even exists on this new endpoint
-        throw new Error(body.error || body.Error || "Malformed response");
-      } else {
-        throw new Error("Malformed response");
-      }
-    }
-
     const currency: EconItem[] = [];
     const inventory: EconItem[] = [];
 
@@ -388,6 +379,15 @@ export class SteamCommunity {
         moreItems: false,
         lastAssetId: undefined,
       };
+    }
+
+    if (!body || !body.success || !body.assets || !body.descriptions) {
+      if (body) {
+        // Dunno if the error/Error property even exists on this new endpoint
+        throw new Error(body.error || body.Error || "Malformed response");
+      } else {
+        throw new Error("Malformed response");
+      }
     }
 
     const items = EconItem.fromAssetsWithDescriptions(
