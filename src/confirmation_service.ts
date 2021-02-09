@@ -238,7 +238,7 @@ export class ConfirmationService {
 
     const resp = await this.request({
       url: multiOperation ? "multiajaxop" : "ajaxop",
-      time: getLocalUnixTime() + this.localOffset++,
+      time: time,
       key: operationKey,
       tag: operation,
       params: {
