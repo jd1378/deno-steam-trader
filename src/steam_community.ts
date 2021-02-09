@@ -1,8 +1,8 @@
+import { TradeManager } from "./trade_manager.ts";
 import {
   Cookie,
   CookieJar,
   CookieOptions,
-  EventEmitter,
   generateAuthCode,
   getKeySize,
   randomBytes,
@@ -16,6 +16,7 @@ import { DEFAULT_USERAGENT } from "./fetch_utils.ts";
 import { EResult } from "./enums/EResult.ts";
 
 export type SteamCommunityOptions = {
+  manager: TradeManager;
   languageName: string;
   username?: string;
   password?: string;
@@ -69,9 +70,10 @@ export type LoginAttemptData = {
 };
 
 // DoctorMcKay/node-steamcommunity was at 3.42.0 at the time of writing this.
-export class SteamCommunity extends EventEmitter {
+export class SteamCommunity {
   languageName: string;
   private cookieJar: CookieJar;
+  private manager: TradeManager;
   public fetch;
   private lastLoginAttempt: LoginAttemptData;
   steamID: SteamID | undefined;
@@ -87,8 +89,7 @@ export class SteamCommunity extends EventEmitter {
     if (typeof options !== "object") {
       throw new Error("SteamCommunity options must be an object");
     }
-    super();
-
+    this.manager = options.manager;
     this.languageName = options.languageName;
     this.username = options.username;
     this.password = options.password;
@@ -126,7 +127,7 @@ export class SteamCommunity extends EventEmitter {
       try {
         await this.saveCookies(this.cookieJar, this.username);
       } catch (err) {
-        this.emit("debug", "Failed to save cookies: " + err);
+        this.manager.emit("debug", "Failed to save cookies: " + err);
       }
     }
   }
@@ -140,7 +141,7 @@ export class SteamCommunity extends EventEmitter {
         );
         if (arrayOfCookieOptions?.length) {
           this.cookieJar.replaceCookies(arrayOfCookieOptions);
-          this.emit("debug", "cookie jar loaded from disk.");
+          this.manager.emit("debug", "cookie jar loaded from disk.");
           let steamID64 = this.cookieJar.getCookie({
             name: "steamLoginSecure",
           })?.value;
@@ -155,13 +156,17 @@ export class SteamCommunity extends EventEmitter {
 
           if (steamID64Match) {
             this.steamID = new SteamID(steamID64Match[1]);
-            this.emit("debug", "restored steamid from cookies", this.steamID);
+            this.manager.emit(
+              "debug",
+              "restored steamid from cookies",
+              this.steamID,
+            );
           } else {
-            this.emit("debug", "Cannot get steamid from cookies");
+            this.manager.emit("debug", "Cannot get steamid from cookies");
           }
         }
       } catch {
-        this.emit("debug", "no saved cookies found.");
+        this.manager.emit("debug", "no saved cookies found.");
       } finally {
         this.loadedCookies = true;
       }
@@ -434,7 +439,7 @@ export class SteamCommunity extends EventEmitter {
           this.steamID = new SteamID(
             decodeURIComponent(steamLoginCV).split("||")[0],
           );
-          this.emit(
+          this.manager.emit(
             "debug",
             "login successful for " + this.username,
             this.steamID,

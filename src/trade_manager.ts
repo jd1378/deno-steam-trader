@@ -22,7 +22,7 @@ export type TradeManagerOptions = {
    *  Setting this to `false` (default) decreases api calls when you don't care about the items' descriptions. 
    */
   getDescriptions?: boolean;
-  communityOptions?: Omit<SteamCommunityOptions, "languageName">;
+  communityOptions?: Omit<SteamCommunityOptions, "languageName" | "manager">;
   pollingOptions?: Omit<DataPollerOptions, "manager">;
   /** not implemented. do **NOT** use. */
   useProtobuf?: boolean;
@@ -104,6 +104,7 @@ export class TradeManager extends EventEmitter {
     }
 
     this.steamCommunity = new SteamCommunity({
+      manager: this,
       languageName: this.languageName,
       ...communityOptions,
     });
