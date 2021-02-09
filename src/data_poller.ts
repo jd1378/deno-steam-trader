@@ -104,11 +104,21 @@ export class DataPoller {
     }
   }
 
-  private deleteOldProps(offerid: string) {
-    delete this.pollData.sent[offerid];
-    delete this.pollData.received[offerid];
+  private deleteTimeProps(offerid: string) {
     delete this.pollData.cancelTimes[offerid];
     delete this.pollData.pendingCancelTimes[offerid];
+  }
+
+  private deleteOldProps(offerid: string) {
+    if (
+      this.pollData.timestamps[offerid] &&
+      this.pollData.offersSince - 1800 < this.pollData.timestamps[offerid]
+    ) {
+      return;
+    }
+    this.deleteTimeProps(offerid);
+    delete this.pollData.sent[offerid];
+    delete this.pollData.received[offerid];
     delete this.pollData.timestamps[offerid];
   }
 
@@ -279,7 +289,7 @@ export class DataPoller {
             ) {
               const offerid = offer.id;
               offer.cancel().then(() => {
-                this.deleteOldProps(offerid);
+                this.deleteTimeProps(offerid);
                 this.manager.emit("sentOfferCanceled", offer, "cancelTime");
               }).catch((err) =>
                 this.manager.emit(
@@ -305,7 +315,7 @@ export class DataPoller {
             ) {
               const offerid = offer.id;
               offer.cancel().then(() => {
-                this.deleteOldProps(offerid);
+                this.deleteTimeProps(offerid);
                 this.manager.emit(
                   "sentPendingOfferCanceled",
                   offer,
@@ -356,7 +366,7 @@ export class DataPoller {
                 TradeOffer.fromOfferId(this.manager, offerid).then(
                   (tradeOffer) => {
                     tradeOffer.cancel().then(() => {
-                      this.deleteOldProps(offerid);
+                      this.deleteTimeProps(offerid);
                       this.manager.emit(
                         "sentOfferCanceled",
                         tradeOffer,
