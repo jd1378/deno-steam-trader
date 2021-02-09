@@ -9,6 +9,13 @@ export function fastConcat<T>(a?: Array<T>, b?: Array<T>): Array<T> {
   return newArray;
 }
 
+/** mutates original array (first arg), runs no checks*/
+export function fastConcatMU<T>(a: Array<T>, b: Array<T>): void {
+  for (let i = 0; i < b.length; i++) {
+    a.push(b[i]);
+  }
+}
+
 export function hasNoName(item: EconItem) {
   return !item.name;
 }
