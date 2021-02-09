@@ -311,18 +311,6 @@ export class TradeOffer {
 
     const body = await response.json();
 
-    if (response.status !== 200) {
-      if (response.status === 401) {
-        const err = new Error("Not Logged In");
-        this.manager.steamCommunity._notifySessionExpired(err);
-        throw err;
-      }
-
-      throw new Error("HTTP error " + response.status);
-    }
-
-    throwIfHasError(body);
-
     if (body && body.tradeofferid) {
       this.id = body.tradeofferid as string;
       this.state = ETradeOfferState.Active;
