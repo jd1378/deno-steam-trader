@@ -71,8 +71,7 @@ export class ConfirmationService {
     };
 
     if (req.method == "GET") {
-      // because its not a "multiajaxop" as we check it above
-      req.qs = params as Record<string, string>;
+      req.qs = params;
     } else {
       req.form = params;
     }
@@ -231,8 +230,13 @@ export class ConfirmationService {
       operation: ConfirmOperation;
     },
   ) {
-    const { confIds, confKeys, operation } = options;
-    const multiOperation = Array.isArray(confIds) && Array.isArray(confKeys);
+    let { confIds, confKeys, operation } = options;
+    const multiOperation = Array.isArray(confIds) && Array.isArray(confKeys) &&
+      confIds.length > 1 && confKeys.length > 1;
+    if (!multiOperation && Array.isArray(confIds) && Array.isArray(confKeys)) {
+      confIds = confIds[0];
+      confKeys = confKeys[0];
+    }
     const time = getLocalUnixTime() + this.localOffset++;
     const operationKey = await this.getKey(time, operation);
 
