@@ -500,6 +500,10 @@ export class DataPoller {
 
   async trySavePollData() {
     if (this.savePollData) {
+      this.manager.emit(
+        "debug",
+        "saving poll data",
+      );
       try {
         if (!this.manager.steamCommunity.username) {
           throw new Error("steam community username is not set");
