@@ -176,7 +176,9 @@ export class GetTradeOffers extends IEconServiceRequest {
     );
     // Make sure at least some offers are well-formed. Apparently some offers can be empty just forever. Because Steam.
     if (
-      allOffers.every(isOfferMalformed) || allOffers.some(isOfferSuperMalformed)
+      allOffers.length &&
+      (allOffers.every(isOfferMalformed) ||
+        allOffers.some(isOfferSuperMalformed))
     ) {
       throw new Error("data temporarily unavailable");
     }
