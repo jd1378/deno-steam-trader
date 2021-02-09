@@ -221,7 +221,7 @@ export async function createTradeManager(
       },
       // our cookie jar supports json serialization directly
       saveCookies: async (data, username) => {
-        await Storage.saveData(`comm_cookies_${username}.bin`, data);
+        await CryptStorage.saveData(`comm_cookies_${username}.bin`, data);
       },
     },
     pollingOptions: {
