@@ -4,5 +4,7 @@ export * from "./src/enums/EOfferFilter.ts";
 export * from "./src/enums/EResult.ts";
 export * from "./src/enums/ETradeOfferState.ts";
 export * from "./src/enums/ETradeStatus.ts";
+export * from "./src/trade_offer.ts";
+export * from "./src/econ_item.ts";
 export { CryptStorage } from "./src/crypt_storage.ts";
 export { Storage } from "./src/storage.ts";
