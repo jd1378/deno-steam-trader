@@ -339,7 +339,7 @@ export class TradeOffer {
       this.confirmationMethod = EConfirmationMethod.MobileApp;
     }
 
-    if (body && this.state == ETradeOfferState.CreatedNeedsConfirmation) {
+    if (body && this.state === ETradeOfferState.CreatedNeedsConfirmation) {
       return ETradeOfferState.CreatedNeedsConfirmation;
     } else if (body && body.tradeofferid) {
       return ETradeOfferState.Active;
@@ -647,7 +647,7 @@ export class TradeOffer {
     if (!this.id) {
       throw new Error("Cannot confirm an unsent offer");
     }
-    if (this.state === ETradeOfferState.CreatedNeedsConfirmation) {
+    if (this.state !== ETradeOfferState.CreatedNeedsConfirmation) {
       throw new Error(
         "Cannot confirm an offer that is not in CreatedNeedsConfirmation state",
       );
