@@ -159,7 +159,7 @@ export class SteamCommunity {
             this.manager.emit(
               "debug",
               "restored steamid from cookies",
-              this.steamID,
+              this.steamID.toString(),
             );
           } else {
             this.manager.emit("debug", "Cannot get steamid from cookies");
@@ -442,7 +442,7 @@ export class SteamCommunity {
           this.manager.emit(
             "debug",
             "login successful for " + this.username,
-            this.steamID,
+            this.steamID.toString(),
           );
         } else {
           throw new Error("Cannot get steamid from cookies");
