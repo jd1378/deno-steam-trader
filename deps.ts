@@ -20,7 +20,7 @@ export {
 
 export type { CookieOptions } from "https://deno.land/x/another_cookiejar@v2.2.5/mod.ts";
 
-export { wrapFetch as wrapFetchWithHeaders } from "https://deno.land/x/fetch_goody@v1.3.1/mod.ts";
+export { wrapFetch as wrapFetchWithHeaders } from "https://deno.land/x/fetch_goody@v1.3.3/mod.ts";
 
 export { RSA } from "https://deno.land/x/god_crypto@v1.4.9/src/rsa/mod.ts";
 export { AES } from "https://deno.land/x/god_crypto@v1.4.9/src/aes/mod.ts";
