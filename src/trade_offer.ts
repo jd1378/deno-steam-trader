@@ -128,6 +128,9 @@ export class TradeOffer {
       this.itemsToReceive.some((_item) => _item.equals(item));
   }
 
+  /**
+   * @param msg - cannot be longer than 128 characters
+   */
   setMessage(msg: string) {
     if (this.id) {
       throw new Error("Cannot set message in an already-sent offer");
