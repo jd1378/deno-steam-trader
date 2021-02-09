@@ -131,6 +131,10 @@ export class TradeManager extends EventEmitter {
     return this.steamCommunity.steamID;
   }
 
+  get confirmationService() {
+    return this.SteamCommunity.confirmationService;
+  }
+
   /**
    * Logins to steam community, get apikey if not set already and set it for steam api use. may throw errors.
    * 
