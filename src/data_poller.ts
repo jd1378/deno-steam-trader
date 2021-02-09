@@ -125,7 +125,10 @@ export class DataPoller {
     ) {
       return;
     }
-
+    this.manager.emit(
+      "debug",
+      "cleaning offerid " + offerid + " from pollData",
+    );
     this.deleteOldProps(offerid);
   }
 
