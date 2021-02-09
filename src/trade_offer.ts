@@ -652,6 +652,19 @@ export class TradeOffer {
     this.removeTheirItem({ appid: 313, contextid: "2", assetid: "1213" });
   }
 
+  /** throws error if offer is not found for confirmation or offer is not sent or does not need confirmation. */
+  async confirm() {
+    if (!this.id) {
+      throw new Error("Cannot confirm an unsent offer");
+    }
+    if (this.state === ETradeOfferState.CreatedNeedsConfirmation) {
+      throw new Error(
+        "Cannot confirm an offer that is not in CreatedNeedsConfirmation state",
+      );
+    }
+    await this.manager.steamCommunity.confirmationService.allowOffer(this.id);
+  }
+
   static async from(
     manager: TradeManager,
     data: Offer,
