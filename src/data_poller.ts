@@ -230,7 +230,6 @@ export class DataPoller {
             this.pollData.sent[offer.id] = offer.state;
             this.pollData.timestamps[offer.id] = offer.updated!.getTime() /
               1000;
-            this.tryDeleteOldProps();
           }
         } else if (offer.state !== this.pollData.sent[offer.id]) {
           if (!offer.isGlitched()) {
@@ -250,7 +249,6 @@ export class DataPoller {
             this.pollData.sent[offer.id] = offer.state;
             this.pollData.timestamps[offer.id] = offer.updated!.getTime() /
               1000;
-            this.tryDeleteOldProps();
           } else {
             hasGlitchedOffer = true;
             let countWithoutName = 0;
@@ -434,7 +432,6 @@ export class DataPoller {
         this.pollData.received[offer.id] = offer.state;
         this.pollData.timestamps[offer.id] = offer.updated!.getTime() /
           1000;
-        this.tryDeleteOldProps();
       });
 
       // TODO make sure works fine
@@ -454,6 +451,7 @@ export class DataPoller {
       }
 
       // at the end
+      this.tryDeleteOldProps();
       this.manager.emit("pollSuccess");
       await this.trySavePollData();
     } catch (err) {
