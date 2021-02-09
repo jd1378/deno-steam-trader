@@ -357,6 +357,26 @@ export class EconItem {
     return items;
   }
 
+  static fromAssetsWithDescriptions(
+    assets: Array<OfferItem>,
+    descriptions: Array<SteamEconItem>,
+  ): EconItem[] {
+    const items: EconItem[] = [];
+
+    for (const asset of assets) {
+      for (const desc of descriptions) {
+        if (
+          desc.classid === asset.classid && desc.instanceid === asset.instanceid
+        ) {
+          items.push(new EconItem({ ...desc, ...asset }));
+          break; // jump out of description loop
+        }
+      }
+    }
+
+    return items;
+  }
+
   static equals(
     a: EconItem | RequiredItemProps,
     b: EconItem | RequiredItemProps,
