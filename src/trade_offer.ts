@@ -196,6 +196,13 @@ export class TradeOffer {
     return false;
   }
 
+  isGiftToMe() {
+    if (!this.isOurOffer && this.id && this.itemsToGive.length === 0) {
+      return true;
+    }
+    return false;
+  }
+
   /** do not use this method to update an offer. it is used internally. */
   private async _update(data: Offer) {
     this.id = data.tradeofferid.toString();
