@@ -143,7 +143,7 @@ export class DataPoller {
         return;
       }
 
-      this.tryLoadPollData();
+      await this.tryLoadPollData();
 
       // never allow faster than 1 second
       if (doingPollTooFast) {
@@ -154,7 +154,7 @@ export class DataPoller {
       let offersSince = 0;
       let fullUpdate = false || doFullUpdate;
 
-      if (this.pollData.offersSince) {
+      if (this.pollData.offersSince && !doFullUpdate) {
         // It looks like sometimes Steam can be dumb and backdate a modified offer. We need to handle this.
         // Let's add a 30-minute buffer.
         offersSince = this.pollData.offersSince - 1800;
@@ -448,7 +448,7 @@ export class DataPoller {
 
       // at the end
       this.manager.emit("pollSuccess");
-      this.trySavePollData();
+      await this.trySavePollData();
     } catch (err) {
       this.manager.emit(
         "debug",
