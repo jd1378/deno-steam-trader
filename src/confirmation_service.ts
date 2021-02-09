@@ -32,7 +32,6 @@ export type ConfirmOperation = "allow" | "cancel";
 
 export class ConfirmationService {
   community: SteamCommunity;
-  private fetch;
   private lastConfirmationList: ConfirmationObject[] = [];
   private identitySecret;
   private retrieveConfirmationsDeffer?: Deferred<void>;
@@ -43,7 +42,6 @@ export class ConfirmationService {
     identitySecret: SteamCommunityOptions["identitySecret"],
   ) {
     this.community = community;
-    this.fetch = community.fetch;
     this.identitySecret = identitySecret;
   }
 
@@ -79,7 +77,10 @@ export class ConfirmationService {
       req.form = params;
     }
 
-    return this.fetch("https://steamcommunity.com/mobileconf/" + url, req);
+    return this.community.fetch(
+      "https://steamcommunity.com/mobileconf/" + url,
+      req,
+    );
   }
 
   /** @param time - unix timestamp */
