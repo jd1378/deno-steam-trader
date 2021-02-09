@@ -188,8 +188,14 @@ export class TradeManager extends EventEmitter {
  * on windows (not sure if syntax is correct): --allow-env --allow-run --allow-read=%cd%\\storage --allow-write=%cd%\\storage --allow-net=api.steampowered.com,steamcommunity.com
  * 
  * on linux: --allow-read=/var/lib/dbus/machine-id,/etc/machine-id,$PWD/storage --allow-write=$PWD/storage --allow-net=api.steampowered.com,steamcommunity.com
+ * 
+ * @param debug - a function to add as event handler of 'debug' early.
+ * currently the only way to debug setup phase through this function.
  */
-export async function createTradeManager(options: TradeManagerOptions) {
+export async function createTradeManager(
+  options: TradeManagerOptions,
+  debug?: (...args: unknown[]) => void | Promise<void>,
+) {
   const {
     communityOptions,
     pollingOptions,
@@ -225,6 +231,9 @@ export async function createTradeManager(options: TradeManagerOptions) {
     },
     ...otherOptions,
   });
+  if (debug) {
+    tradeManager.on("debug", debug);
+  }
   await tradeManager.setup();
   return tradeManager;
 }
