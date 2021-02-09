@@ -26,11 +26,15 @@ const NON_TERMINAL_OFFER_STATES = [
   ETradeOfferState.InEscrow,
 ];
 
-export function isNonTerminalState(offer: Offer | TradeOffer) {
-  if ("trade_offer_state" in offer) {
-    return NON_TERMINAL_OFFER_STATES.includes(offer.trade_offer_state);
+export function isNonTerminalState(
+  offerOrState: Offer | TradeOffer | ETradeOfferState,
+) {
+  if (typeof offerOrState === "number") {
+    return NON_TERMINAL_OFFER_STATES.includes(offerOrState);
+  } else if ("trade_offer_state" in offerOrState) {
+    return NON_TERMINAL_OFFER_STATES.includes(offerOrState.trade_offer_state);
   } else {
-    return NON_TERMINAL_OFFER_STATES.includes(offer.state);
+    return NON_TERMINAL_OFFER_STATES.includes(offerOrState.state);
   }
 }
 

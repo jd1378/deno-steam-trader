@@ -110,16 +110,32 @@ export class DataPoller {
   }
 
   private deleteOldProps(offerid: string) {
-    if (
-      this.pollData.timestamps[offerid] &&
-      this.pollData.offersSince - 1800 < this.pollData.timestamps[offerid]
-    ) {
-      return;
-    }
     this.deleteTimeProps(offerid);
     delete this.pollData.sent[offerid];
     delete this.pollData.received[offerid];
     delete this.pollData.timestamps[offerid];
+  }
+
+  private pruneOfferEntry(entry: [string, number]) {
+    const [offerid, offerState] = entry;
+    if (
+      isNonTerminalState(offerState) ||
+      (this.pollData.timestamps[offerid] &&
+        this.pollData.offersSince - 1800 < this.pollData.timestamps[offerid])
+    ) {
+      return;
+    }
+
+    this.deleteOldProps(offerid);
+  }
+
+  private tryDeleteOldProps() {
+    Object.entries(this.pollData.received).forEach((entry) =>
+      this.pruneOfferEntry(entry)
+    );
+    Object.entries(this.pollData.sent).forEach((entry) =>
+      this.pruneOfferEntry(entry)
+    );
   }
 
   async doPoll(doFullUpdate?: boolean) {
@@ -211,13 +227,10 @@ export class DataPoller {
             }
 
             this.manager.emit("unknownOfferSent", offer);
-            if (isNonTerminalState(offer)) {
-              this.pollData.sent[offer.id] = offer.state;
-              this.pollData.timestamps[offer.id] = offer.updated!.getTime() /
-                1000;
-            } else {
-              this.deleteOldProps(offer.id);
-            }
+            this.pollData.sent[offer.id] = offer.state;
+            this.pollData.timestamps[offer.id] = offer.updated!.getTime() /
+              1000;
+            this.tryDeleteOldProps();
           }
         } else if (offer.state !== this.pollData.sent[offer.id]) {
           if (!offer.isGlitched()) {
@@ -234,13 +247,10 @@ export class DataPoller {
               offer,
               this.pollData.sent[offer.id],
             );
-            if (isNonTerminalState(offer)) {
-              this.pollData.sent[offer.id] = offer.state;
-              this.pollData.timestamps[offer.id] = offer.updated!.getTime() /
-                1000;
-            } else {
-              this.deleteOldProps(offer.id);
-            }
+            this.pollData.sent[offer.id] = offer.state;
+            this.pollData.timestamps[offer.id] = offer.updated!.getTime() /
+              1000;
+            this.tryDeleteOldProps();
           } else {
             hasGlitchedOffer = true;
             let countWithoutName = 0;
@@ -421,13 +431,10 @@ export class DataPoller {
           );
         }
 
-        if (isNonTerminalState(offer)) {
-          this.pollData.received[offer.id] = offer.state;
-          this.pollData.timestamps[offer.id] = offer.updated!.getTime() /
-            1000;
-        } else {
-          this.deleteOldProps(offer.id);
-        }
+        this.pollData.received[offer.id] = offer.state;
+        this.pollData.timestamps[offer.id] = offer.updated!.getTime() /
+          1000;
+        this.tryDeleteOldProps();
       });
 
       // TODO make sure works fine
