@@ -7,10 +7,10 @@ export { getLanguageInfo } from "https://deno.land/x/language@v0.1.0/mod.ts";
 export { SteamID } from "https://deno.land/x/steamid@v1.1.1/mod.ts";
 export {
   generateAuthCode,
-  generateConfirmationCode,
+  generateConfirmationKey,
   getDeviceID,
   getLocalUnixTime,
-} from "https://deno.land/x/steamtotp@v2.1.0/mod.ts";
+} from "https://deno.land/x/steamtotp@v3.0.0/mod.ts";
 export { LFU } from "https://deno.land/x/velo@0.1.5/mod.ts";
 
 export {
@@ -32,3 +32,6 @@ export { RSAKey } from "https://deno.land/x/god_crypto@v1.4.9/src/rsa/rsa_key.ts
 export { get_key_size as getKeySize } from "https://deno.land/x/god_crypto@v1.4.9/src/helper.ts";
 
 export { getMachineId } from "https://deno.land/x/machine_id@v0.3.0/mod.ts";
+
+export { DOMParser } from "https://deno.land/x/deno_dom@v0.1.5-alpha/deno-dom-wasm.ts";
+export type { Element } from "https://deno.land/x/deno_dom@v0.1.5-alpha/deno-dom-wasm.ts";
