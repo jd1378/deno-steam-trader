@@ -132,7 +132,7 @@ export class TradeManager extends EventEmitter {
   }
 
   get confirmationService() {
-    return this.SteamCommunity.confirmationService;
+    return this.steamCommunity.confirmationService;
   }
 
   /**
