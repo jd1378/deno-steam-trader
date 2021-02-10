@@ -1,5 +1,6 @@
 export * from "./src/trade_manager.ts";
 export * from "./src/enums/EConfirmationMethod.ts";
+export * from "./src/enums/EConfirmationType.ts";
 export * from "./src/enums/EOfferFilter.ts";
 export * from "./src/enums/EResult.ts";
 export * from "./src/enums/ETradeOfferState.ts";
