@@ -17,9 +17,8 @@ export {
   Cookie,
   CookieJar,
   wrapFetch as wrapFetchWithCookieJar,
-} from "https://deno.land/x/another_cookiejar@v2.2.5/mod.ts";
-
-export type { CookieOptions } from "https://deno.land/x/another_cookiejar@v2.2.5/mod.ts";
+} from "https://deno.land/x/another_cookiejar@v2.2.7/mod.ts";
+export type { CookieOptions } from "https://deno.land/x/another_cookiejar@v2.2.7/mod.ts";
 
 export type { ExtendedRequestInit } from "https://deno.land/x/fetch_goody@v2.1.0/mod.ts";
 export {
