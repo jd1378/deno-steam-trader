@@ -321,6 +321,9 @@ export class EconItem {
     for (const offerItem of offerItemList) {
       const cachedData = itemDescriptionLFU.get(getCacheKey(offerItem));
       if (!cachedData && shouldGetDescriptions) {
+        if (!appidGroupedOfferItems[offerItem.appid]) {
+          appidGroupedOfferItems[offerItem.appid] = [] as OfferItem[];
+        }
         appidGroupedOfferItems[offerItem.appid].push(offerItem);
       } else {
         items.push(new EconItem({ ...cachedData, ...offerItem }));
