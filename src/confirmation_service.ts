@@ -211,9 +211,7 @@ export class ConfirmationService {
     );
     if (!found || !this.lastConfirmationList.length) {
       if (_sr) {
-        if (!found) {
-          throw new Error("requested offerid is not in confirmation list");
-        }
+        return;
       } else {
         await this.getConfirmations();
         return this.findOrGetConfirmation(offerid, true);
