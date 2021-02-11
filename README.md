@@ -28,7 +28,7 @@ const tradeManager = await createTradeManager({
   communityOptions: {
     username: "your_steam_username",
     password: "your_steam_password",
-    sharedSecret: "your shared secret" // or a function that will return the generated code as a string,
+    sharedSecret: "your shared secret", // or a function that will return the generated code as a string,
     identitySecret: "your identity secret" // or a function that will return the generated key needed for requests,
   },
   // use `getDescriptions: true` if you want item information like market_hash_name to be available when loading offers (does not affect getUserInventoryContents)
