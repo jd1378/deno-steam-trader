@@ -185,6 +185,10 @@ export class TradeManager extends EventEmitter {
     offer.fromRealTimeTrade = false;
     return offer;
   }
+
+  loadOffer(offerid: string) {
+    return TradeOffer.fromOfferId(this, offerid);
+  }
 }
 
 /** 
