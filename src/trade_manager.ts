@@ -213,7 +213,6 @@ export async function createTradeManager(
   } = options || {};
   const tradeManager = new TradeManager({
     communityOptions: {
-      ...communityOptions,
       loadCookies: (username) => {
         return CryptStorage.loadData(
           `comm_cookies_${username}.bin`,
@@ -227,9 +226,9 @@ export async function createTradeManager(
       saveCookies: async (data, username) => {
         await CryptStorage.saveData(`comm_cookies_${username}.bin`, data);
       },
+      ...communityOptions,
     },
     pollingOptions: {
-      ...pollingOptions,
       loadPollData: (username) => {
         return Storage.loadData(`poll_data_${username}.json`) as Promise<
           PollData
@@ -238,6 +237,7 @@ export async function createTradeManager(
       savePollData: async (data, username) => {
         await Storage.saveData(`poll_data_${username}.json`, data);
       },
+      ...pollingOptions,
     },
     ...otherOptions,
   });
