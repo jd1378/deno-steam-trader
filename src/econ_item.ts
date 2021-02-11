@@ -15,7 +15,7 @@ function getCacheKey(item: OfferItem) {
 
 export function getDescriptionKey(item: OfferItem) {
   let key = `${item.classid}`;
-  if (item.instanceid && item.instanceid != "0") {
+  if (item.instanceid && item.instanceid != "0") { // intentional non-strict check
     key += "_" + item.instanceid;
   }
   return key;
