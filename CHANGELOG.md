@@ -1,6 +1,10 @@
 
 # Changelog
 
+## v0.1.3
+
+- await internal offer _update call. fixes issue with `getDescription: true` not working.
+
 ## v0.1.2
 
 - allow overriding default options such as `saveCookies`, `loadCookies` and ...  when using `createTradeManager` helper function
