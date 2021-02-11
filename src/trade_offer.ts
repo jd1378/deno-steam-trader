@@ -489,7 +489,7 @@ export class TradeOffer {
         new GetTradeOffer(this.id),
       );
       // the check is done inside the Service Request.
-      this._update(body!.response!.offer!);
+      await this._update(body!.response!.offer!);
     } catch (err) {
       throw new Error("Cannot load offer data: " + err.message);
     }
