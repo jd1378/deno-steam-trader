@@ -38,6 +38,8 @@ export function isNonTerminalState(
   }
 }
 
+const INTERNAL_USE_FLAG = "_internal_use_flag";
+
 export class TradeOffer {
   manager: TradeManager;
   /** The other party in this offer, as a SteamID object */
@@ -93,7 +95,7 @@ export class TradeOffer {
     this.manager = manager;
 
     if (typeof partner === "string") {
-      if (partner !== " _internal_use_flag") {
+      if (partner !== INTERNAL_USE_FLAG) {
         this.partner = new SteamID(partner);
       }
     } else if (partner) {
@@ -103,7 +105,7 @@ export class TradeOffer {
     this._token = token;
 
     if (
-      partner !== "_internal_use_flag" &&
+      partner !== INTERNAL_USE_FLAG &&
       (!this.partner ||
         !this.partner.isValid() ||
         this.partner.type !== SteamID.Type.INDIVIDUAL)
@@ -673,7 +675,7 @@ export class TradeOffer {
   ) {
     const offer = new TradeOffer(
       manager,
-      "_internal_use_flag",
+      INTERNAL_USE_FLAG,
     );
     offer.id = offerid;
     await offer.update();
