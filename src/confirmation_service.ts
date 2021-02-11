@@ -73,18 +73,7 @@ export class ConfirmationService {
     if (req.method == "GET") {
       req.qs = params as Record<string, string>; // handle by doConfirmationOperation
     } else {
-      let urlEncoded = "";
-      for (const [key, value] of Object.entries(params)) {
-        if (Array.isArray(value)) {
-          for (const val of value) {
-            urlEncoded += `${key}[]=${encodeURIComponent(val)}&`;
-          }
-        } else {
-          urlEncoded += `${key}=${encodeURIComponent(value)}&`;
-        }
-      }
-      urlEncoded = urlEncoded.substring(0, urlEncoded.length - 1);
-      req.body = urlEncoded;
+      req.form = params;
     }
 
     return this.community.fetch(

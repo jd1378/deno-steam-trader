@@ -20,10 +20,10 @@ export {
 } from "https://deno.land/x/another_cookiejar@v3.0.0/mod.ts";
 export type { CookieOptions } from "https://deno.land/x/another_cookiejar@v3.0.0/mod.ts";
 
-export type { ExtendedRequestInit } from "https://deno.land/x/fetch_goody@v2.1.0/mod.ts";
+export type { ExtendedRequestInit } from "https://deno.land/x/fetch_goody@v3.0.1/mod.ts";
 export {
   wrapFetch as wrapFetchWithHeaders,
-} from "https://deno.land/x/fetch_goody@v2.1.0/mod.ts";
+} from "https://deno.land/x/fetch_goody@v3.0.1/mod.ts";
 
 export { RSA } from "https://deno.land/x/god_crypto@v1.4.9/src/rsa/mod.ts";
 export { AES } from "https://deno.land/x/god_crypto@v1.4.9/src/aes/mod.ts";
