@@ -3,7 +3,7 @@
 
 ## v0.2.0
 
-- use EVT instead of event emitter, which enforces type safety.
+- use [EVT](https://deno.land/x/evt@v1.9.12) instead of event emitter, which enforces type safety.
 
 ## v0.1.4
 
