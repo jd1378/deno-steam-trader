@@ -1,5 +1,8 @@
-import { EventEmitter } from "../deps.ts";
+import { Evt } from "../deps.ts";
 
-export class SteamUser extends EventEmitter {
-  // TODO
+export class SteamUser {
+  evt = new Evt<
+    | ["tradeOffers", null]
+    | ["newItems", null]
+  >();
 }
