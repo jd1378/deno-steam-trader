@@ -127,10 +127,10 @@ export class DataPoller {
     ) {
       return;
     }
-    this.manager.emit(
+    this.manager.evt.post([
       "debug",
       "cleaning offerid " + offerid + " from pollData",
-    );
+    ]);
     this.deleteOldProps(offerid);
   }
 
@@ -191,22 +191,26 @@ export class DataPoller {
         filter: fullUpdate ? EOfferFilter.All : EOfferFilter.ActiveOnly,
         historicalCutoff: offersSince,
       };
-      this.manager.emit(
-        "debug",
-        `Doing trade offer poll since ${offersSince}${
-          fullUpdate ? " (full update)" : ""
-        }`,
+      this.manager.evt.post(
+        [
+          "debug",
+          `Doing trade offer poll since ${offersSince}${
+            fullUpdate ? " (full update)" : ""
+          }`,
+        ],
       );
       const apiresp = await this.getOffers(getOffersOptions);
       let hasGlitchedOffer = false;
 
       apiresp.sentOffers.forEach((offer) => {
         if (!offer.id) {
-          this.manager.emit(
+          this.manager.evt.post([
             "debug",
-            "Warning: an offer id in sent offers of response is not set. skipping.",
-            offer,
-          );
+            [
+              "Warning: an offer id in sent offers of response is not set. skipping.",
+              offer,
+            ],
+          ]);
           return;
         }
 
@@ -224,14 +228,17 @@ export class DataPoller {
                   offer.confirmationMethod != EConfirmationMethod.None)
               ) {
                 // we need to confirm this
-                this.manager.emit("realTimeTradeConfirmationRequired", offer);
+                this.manager.evt.post([
+                  "realTimeTradeConfirmationRequired",
+                  offer,
+                ]);
               } else if (offer.state === ETradeOfferState.Accepted) {
                 // both parties confirmed, trade complete
-                this.manager.emit("realTimeTradeCompleted", offer);
+                this.manager.evt.post(["realTimeTradeCompleted", offer]);
               }
             }
 
-            this.manager.emit("unknownOfferSent", offer);
+            this.manager.evt.post(["unknownOfferSent", offer]);
             this.pollData.sent[offer.id] = offer.state;
             this.pollData.timestamps[offer.id] = offer.updated!.getTime() /
               1000;
@@ -243,14 +250,13 @@ export class DataPoller {
               offer.fromRealTimeTrade &&
               offer.state == ETradeOfferState.Accepted
             ) {
-              this.manager.emit("realTimeTradeCompleted", offer);
+              this.manager.evt.post(["realTimeTradeCompleted", offer]);
             }
 
-            this.manager.emit(
+            this.manager.evt.post([
               "sentOfferChanged",
-              offer,
-              this.pollData.sent[offer.id],
-            );
+              [offer, this.pollData.sent[offer.id] as ETradeOfferState],
+            ]);
             this.pollData.sent[offer.id] = offer.state;
             this.pollData.timestamps[offer.id] = offer.updated!.getTime() /
               1000;
@@ -261,14 +267,14 @@ export class DataPoller {
               countWithoutName = offer.itemsToGive.filter(hasNoName).length +
                 offer.itemsToReceive.filter(hasNoName).length;
             }
-            this.manager.emit(
+            this.manager.evt.post([
               "debug",
               "Not emitting sentOfferChanged for " + offer.id +
-                " right now because it's glitched (" +
-                offer.itemsToGive.length + " to give, " +
-                offer.itemsToReceive.length + " to receive," +
-                countWithoutName + " without name",
-            );
+              " right now because it's glitched (" +
+              offer.itemsToGive.length + " to give, " +
+              offer.itemsToReceive.length + " to receive," +
+              countWithoutName + " without name",
+            ]);
           }
         }
 
@@ -285,11 +291,16 @@ export class DataPoller {
             const offerid = offer.id;
             offer.cancel().then(() => {
               this.deleteTimeProps(offerid);
-              this.manager.emit("sentOfferCanceled", offer, "cancelTime");
+              this.manager.evt.post(["sentOfferCanceled", [
+                offer,
+                "cancelTime",
+              ]]);
             }).catch((err) =>
-              this.manager.emit(
-                "debug",
-                "Can't auto-cancel offer #" + offerid + ": " + err.message,
+              this.manager.evt.post(
+                [
+                  "debug",
+                  "Can't auto-cancel offer #" + offerid + ": " + err.message,
+                ],
               )
             );
           }
@@ -311,16 +322,17 @@ export class DataPoller {
             const offerid = offer.id;
             offer.cancel().then(() => {
               this.deleteTimeProps(offerid);
-              this.manager.emit(
+              this.manager.evt.post([
                 "sentPendingOfferCanceled",
                 offer,
-                "pendingCancelTime",
-              );
+              ]);
             }).catch((err) =>
-              this.manager.emit(
-                "debug",
-                "Can't auto-cancel pending-confirmation offer #" + offer.id +
+              this.manager.evt.post(
+                [
+                  "debug",
+                  "Can't auto-cancel pending-confirmation offer #" + offer.id +
                   ": " + err.message,
+                ],
               )
             );
           }
@@ -366,17 +378,16 @@ export class DataPoller {
                 (tradeOffer) => {
                   tradeOffer.cancel().then(() => {
                     this.deleteTimeProps(offerid);
-                    this.manager.emit(
+                    this.manager.evt.post([
                       "sentOfferCanceled",
-                      tradeOffer,
-                      "cancelOfferCount",
-                    );
+                      [tradeOffer, "cancelOfferCount"],
+                    ]);
                   }).catch((err) => {
-                    this.manager.emit(
+                    this.manager.evt.post([
                       "debug",
                       "Can't auto-cancel offer #" + tradeOffer.id + ": " +
-                        err.message,
-                    );
+                      err.message,
+                    ]);
                   });
                 },
               );
@@ -387,11 +398,13 @@ export class DataPoller {
 
       apiresp.receivedOffers.forEach((offer) => {
         if (!offer.id) {
-          this.manager.emit(
+          this.manager.evt.post([
             "debug",
-            "Warning: an offer id in received offers of response is not set. skipping.",
-            offer,
-          );
+            [
+              "Warning: an offer id in received offers of response is not set. skipping.",
+              offer,
+            ],
+          ]);
           return;
         }
 
@@ -408,13 +421,13 @@ export class DataPoller {
               (offer.state === ETradeOfferState.Active &&
                 offer.confirmationMethod !== EConfirmationMethod.None))
           ) {
-            this.manager.emit("realTimeTradeConfirmationRequired", offer);
+            this.manager.evt.post(["realTimeTradeConfirmationRequired", offer]);
           } else if (
             offer.state == ETradeOfferState.Accepted &&
             (!this.pollData.received[offer.id] ||
               (this.pollData.received[offer.id] !== offer.state))
           ) {
-            this.manager.emit("realTimeTradeCompleted", offer);
+            this.manager.evt.post(["realTimeTradeCompleted", offer]);
           }
         }
 
@@ -422,16 +435,15 @@ export class DataPoller {
           !this.pollData.received[offer.id] &&
           offer.state === ETradeOfferState.Active
         ) {
-          this.manager.emit("newOffer", offer);
+          this.manager.evt.post(["newOffer", offer]);
         } else if (
           this.pollData.received[offer.id] &&
           offer.state !== this.pollData.received[offer.id]
         ) {
-          this.manager.emit(
+          this.manager.evt.post([
             "receivedOfferChanged",
-            offer,
-            this.pollData.received[offer.id],
-          );
+            [offer, this.pollData.received[offer.id]],
+          ]);
         }
 
         this.pollData.received[offer.id] = offer.state;
@@ -457,15 +469,17 @@ export class DataPoller {
 
       // at the end
       this.tryDeleteOldProps();
-      this.manager.emit("pollSuccess");
+      this.manager.evt.post(["pollSuccess", undefined]);
       await this.trySavePollData();
     } catch (err) {
-      this.manager.emit(
-        "debug",
-        "poll failed at: " + new Date().toUTCString() +
+      this.manager.evt.post(
+        [
+          "debug",
+          "poll failed at: " + new Date().toUTCString() +
           "\n Reason: " + err.message,
+        ],
       );
-      this.manager.emit("pollFailure", err);
+      this.manager.evt.post(["pollFailure", err]);
     } finally {
       this.lastPoll = Date.now();
       this.polling = false;
@@ -485,20 +499,17 @@ export class DataPoller {
 
   private async tryLoadPollData() {
     if (!this.loadedPollData && this.loadPollData) {
-      this.manager.emit(
-        "debug",
-        "loading poll data",
-      );
+      this.manager.evt.post(["debug", "loading poll data"]);
       let loadedData;
       try {
         loadedData = await this.loadPollData(
           this.manager.steamCommunity.username!,
         );
       } catch (err) {
-        this.manager.emit(
+        this.manager.evt.post([
           "debug",
           "loading poll data failed. error: " + err.message,
-        );
+        ]);
       } finally {
         this.loadedPollData = true;
       }
@@ -514,10 +525,7 @@ export class DataPoller {
 
   async trySavePollData() {
     if (this.savePollData) {
-      this.manager.emit(
-        "debug",
-        "saving poll data",
-      );
+      this.manager.evt.post(["debug", "saving poll data"]);
       try {
         if (!this.manager.steamCommunity.username) {
           throw new Error("steam community username is not set");
@@ -527,10 +535,10 @@ export class DataPoller {
           this.manager.steamCommunity.username,
         );
       } catch (err) {
-        this.manager.emit(
+        this.manager.evt.post([
           "debug",
           "saving poll data failed. error: " + err.message,
-        );
+        ]);
       }
     }
   }

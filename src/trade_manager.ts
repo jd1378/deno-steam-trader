@@ -1,3 +1,4 @@
+import type { ETradeOfferState } from "./enums/ETradeOfferState.ts";
 import { CryptStorage } from "./crypt_storage.ts";
 import { DataPoller, DataPollerOptions, PollData } from "./data_poller.ts";
 import { SteamApi } from "./steam_api/mod.ts";
@@ -6,7 +7,7 @@ import {
   SteamCommunity,
   SteamCommunityOptions,
 } from "./steam_community.ts";
-import { EventEmitter, getLanguageInfo, SteamID } from "../deps.ts";
+import { Evt, getLanguageInfo, SteamID, to } from "../deps.ts";
 import type { CookieOptions } from "../deps.ts";
 import { Storage } from "./storage.ts";
 import { SteamUser } from "./steam_user.ts";
@@ -45,7 +46,7 @@ export type TradeManagerOptions = {
   cancelOfferCountMinAge?: number;
 };
 
-export class TradeManager extends EventEmitter {
+export class TradeManager {
   language: string;
   languageName: string;
   domain: string;
@@ -59,10 +60,23 @@ export class TradeManager extends EventEmitter {
   pendingCancelTime: number | undefined;
   cancelOfferCount: number | undefined;
   cancelOfferCountMinAge: number | undefined;
+  evt = new Evt<
+    | ["sessionExpired", Error]
+    | ["familyViewRestricted", Error]
+    | ["newOffer", TradeOffer]
+    | ["realTimeTradeConfirmationRequired", TradeOffer]
+    | ["realTimeTradeCompleted", TradeOffer]
+    | ["receivedOfferChanged", [TradeOffer, ETradeOfferState]]
+    | ["unknownOfferSent", TradeOffer]
+    | ["sentOfferChanged", [TradeOffer, ETradeOfferState]]
+    | ["sentOfferCanceled", [TradeOffer, string]]
+    | ["sentPendingOfferCanceled", TradeOffer]
+    | ["pollSuccess", undefined]
+    | ["pollFailure", Error]
+    | ["debug", unknown]
+  >();
 
   constructor(options: TradeManagerOptions) {
-    super();
-
     const {
       domain = "localhost",
       language = "en",
@@ -117,10 +131,10 @@ export class TradeManager extends EventEmitter {
     if (useProtobuf) {
       // TODO
       this.steamUser = new SteamUser();
-      this.steamUser.on("tradeOffers", () => {
+      this.steamUser.evt.$attach(to("tradeOffers"), () => {
         this.dataPoller.doPoll();
       });
-      this.steamUser.on("newItems", () => {
+      this.steamUser.evt.$attach(to("newItems"), () => {
         this.dataPoller.doPoll();
       });
     }
@@ -208,7 +222,7 @@ export class TradeManager extends EventEmitter {
  */
 export async function createTradeManager(
   options: TradeManagerOptions,
-  debug?: (...args: unknown[]) => void | Promise<void>,
+  debug?: (arg: unknown) => void | Promise<void>,
 ) {
   const {
     communityOptions,
@@ -246,7 +260,7 @@ export async function createTradeManager(
     ...otherOptions,
   });
   if (debug) {
-    tradeManager.on("debug", debug);
+    tradeManager.evt.$attach(to("debug"), debug);
   }
   await tradeManager.setup();
   return tradeManager;

@@ -136,7 +136,7 @@ export class SteamCommunity {
       try {
         await this.saveCookies(this.cookieJar, this.username);
       } catch (err) {
-        this.manager.emit("debug", "Failed to save cookies: " + err);
+        this.manager.evt.post(["debug", "Failed to save cookies: " + err]);
       }
     }
   }
@@ -150,7 +150,7 @@ export class SteamCommunity {
         );
         if (arrayOfCookieOptions?.length) {
           this.cookieJar.replaceCookies(arrayOfCookieOptions);
-          this.manager.emit("debug", "cookie jar loaded from disk.");
+          this.manager.evt.post(["debug", "cookie jar loaded from disk."]);
           let steamID64 = this.cookieJar.getCookie({
             name: "steamLoginSecure",
           })?.value;
@@ -165,17 +165,16 @@ export class SteamCommunity {
 
           if (steamID64Match) {
             this.steamID = new SteamID(steamID64Match[1]);
-            this.manager.emit(
-              "debug",
+            this.manager.evt.post(["debug", [
               "restored steamid from cookies",
               this.steamID.toString(),
-            );
+            ]]);
           } else {
-            this.manager.emit("debug", "Cannot get steamid from cookies");
+            this.manager.evt.post(["debug", "Cannot get steamid from cookies"]);
           }
         }
       } catch {
-        this.manager.emit("debug", "no saved cookies found.");
+        this.manager.evt.post(["debug", "no saved cookies found."]);
       } finally {
         this.loadedCookies = true;
       }
@@ -574,11 +573,10 @@ export class SteamCommunity {
           this.steamID = new SteamID(
             decodeURIComponent(steamLoginCV).split("||")[0],
           );
-          this.manager.emit(
-            "debug",
+          this.manager.evt.post(["debug", [
             "login successful for " + this.username,
             this.steamID.toString(),
-          );
+          ]]);
         } else {
           throw new Error("Cannot get steamid from cookies");
         }
@@ -710,10 +708,10 @@ export class SteamCommunity {
   }
 
   _notifySessionExpired(err: Error) {
-    this.manager.emit("sessionExpired", err);
+    this.manager.evt.post(["sessionExpired", err]);
   }
 
   _notifyFamilyViewRestricted(err: Error) {
-    this.manager.emit("familyViewRestricted", err);
+    this.manager.evt.post(["familyViewRestricted", err]);
   }
 }

@@ -9,3 +9,4 @@ export * from "./src/trade_offer.ts";
 export * from "./src/econ_item.ts";
 export { CryptStorage } from "./src/crypt_storage.ts";
 export { Storage } from "./src/storage.ts";
+export { to } from "./deps.ts";
