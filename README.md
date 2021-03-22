@@ -21,7 +21,7 @@ Till stable v1.0.0 release, patch versions may contain a new feature or a fix, m
 ## Example Usage
 
 ```ts
-import { createTradeManager, ETradeOfferState, TradeOffer } from "./mod.ts";
+import { createTradeManager, ETradeOfferState, TradeOffer, to } from "./mod.ts";
 
 const tradeManager = await createTradeManager({
   language: "en",
@@ -36,19 +36,19 @@ const tradeManager = await createTradeManager({
   // it is `false` by default because it does extra requests unnecessarily for some use cases.
 }, console.log);
 
-tradeManager.on("unknownOfferSent", (offer: TradeOffer) => {
+tradeManager.evt.$attach(to("unknownOfferSent"), (offer) => {
   console.log("unknownOfferSent: ", offer.id);
 });
 
-tradeManager.on("sentOfferChanged", (offer: TradeOffer) => {
+tradeManager.evt.$attach(to("sentOfferChanged"), ([offer, offerState]) => {
   console.log("sentOfferChanged: ", offer.id);
 });
 
-tradeManager.on("receivedOfferChanged", (offer: TradeOffer) => {
+tradeManager.evt.$attach(to("receivedOfferChanged"), ([offer, offerState]) => {
   console.log("receivedOfferChanged: ", offer.id);
 });
 
-tradeManager.on("newOffer", (offer: TradeOffer) => {
+tradeManager.evt.$attach(to("newOffer"), (offer) => {
   console.log(
     "newOffer: ",
     offer.id,

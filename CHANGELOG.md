@@ -1,6 +1,10 @@
 
 # Changelog
 
+## v0.2.0
+
+- use EVT instead of event emitter, which enforces type safety.
+
 ## v0.1.4
 
 - updated another_cookiejar to v4.0.0
