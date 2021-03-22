@@ -12,6 +12,8 @@ Currently I don't have enough time to support this project due to personal life 
 
 by using the exported `createTradeManager` function you can easily get it up and running through ts types I guess. I will add more docs as soon as I have the time.
 
+events are emitted using [EVT](https://deno.land/x/evt@v1.9.12).
+
 ## Warning
 
 This module doesn't have any tests And is in early stages, meaning there is possibly a lot of bugs, use at your own discretion.
