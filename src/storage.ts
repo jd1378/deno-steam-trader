@@ -25,11 +25,15 @@ export class Storage {
   static async saveData(path: string, data: unknown) {
     const resolvedPath = getPathInStorage(path);
     await mkdir(resolvedPath);
-    await Deno.writeTextFile(resolvedPath, JSON.stringify(data));
+    await Deno.writeTextFile(
+      resolvedPath,
+      typeof data === "string" ? data : JSON.stringify(data),
+    );
   }
 
-  static async loadData(path: string): Promise<unknown> {
+  static async loadData(path: string, { noParse = false }): Promise<unknown> {
     const data = await Deno.readTextFile(getPathInStorage(path));
+    if (noParse) return data;
     return JSON.parse(data);
   }
 }
