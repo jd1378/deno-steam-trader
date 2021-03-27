@@ -1,5 +1,3 @@
-export { Evt, to } from "https://deno.land/x/evt@v1.9.12/mod.ts";
-
 export { randomBytes } from "https://deno.land/std@0.91.0/node/crypto.ts";
 export { Buffer } from "https://deno.land/std@0.91.0/node/buffer.ts";
 export { dirname, resolve } from "https://deno.land/std@0.91.0/node/path.ts";
@@ -35,3 +33,8 @@ export { getMachineId } from "https://deno.land/x/machine_id@v0.3.0/mod.ts";
 
 export { DOMParser } from "https://deno.land/x/deno_dom@v0.1.5-alpha/deno-dom-wasm.ts";
 export type { Element } from "https://deno.land/x/deno_dom@v0.1.5-alpha/deno-dom-wasm.ts";
+
+export { Evt, to } from "https://deno.land/x/evt@v1.9.12/mod.ts";
+
+export type { WebSocketClient } from "https://deno.land/x/websocket@v0.1.0/mod.ts";
+export { StandardWebSocketClient } from "https://deno.land/x/websocket@v0.1.0/mod.ts";
