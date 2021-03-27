@@ -38,3 +38,5 @@ export { Evt, to } from "https://deno.land/x/evt@v1.9.12/mod.ts";
 
 export type { WebSocketClient } from "https://deno.land/x/websocket@v0.1.0/mod.ts";
 export { StandardWebSocketClient } from "https://deno.land/x/websocket@v0.1.0/mod.ts";
+
+export { Semaphore } from "https://deno.land/x/semaphore@v1.1.0/mod.ts";
