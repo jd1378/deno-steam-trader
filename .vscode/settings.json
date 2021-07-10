@@ -12,4 +12,7 @@
   "debug.javascript.unmapMissingSources": true,
   "deno.suggest.paths": true,
   "deno.suggest.autoImports": true,
+  "deno.suggest.imports.hosts": {
+    "https://deno.land": false
+  },
 }
