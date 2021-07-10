@@ -2,7 +2,6 @@ export { randomBytes } from "https://deno.land/std@0.100.0/node/crypto.ts";
 export { Buffer } from "https://deno.land/std@0.100.0/node/buffer.ts";
 export { dirname, resolve } from "https://deno.land/std@0.100.0/node/path.ts";
 export { delay } from "https://deno.land/std@0.100.0/async/delay.ts";
-
 export { getLanguageInfo } from "https://deno.land/x/language@v0.1.0/mod.ts";
 export { SteamID } from "https://deno.land/x/steamid@v1.1.1/mod.ts";
 export {
@@ -48,3 +47,5 @@ export {
 } from "https://deno.land/x/websocket@v0.1.2/mod.ts";
 
 export { Semaphore } from "https://deno.land/x/semaphore@v1.1.0/mod.ts";
+
+export { ByteBuf } from "https://deno.land/x/bytebuf@1.1.1/bytebuf.ts";
