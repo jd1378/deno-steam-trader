@@ -14,11 +14,11 @@ export async function mkdir(path: string) {
 
 /**
  * For using this class you need to give proper permissions to deno.
- * 
+ *
  * Automatically calls JSON.stringify on your data on save and JSON.parse on load.
- * 
+ *
  * on windows (not sure): --allow-read=%cd%\\storage --allow-write=%cd%\\storage
- * 
+ *
  * on linux: --allow-read=$PWD/storage --allow-write=$PWD/storage
  */
 export class Storage {
@@ -31,7 +31,10 @@ export class Storage {
     );
   }
 
-  static async loadData(path: string, { noParse = false }): Promise<unknown> {
+  static async loadData(
+    path: string,
+    { noParse = false } = {},
+  ): Promise<unknown> {
     const data = await Deno.readTextFile(getPathInStorage(path));
     if (noParse) return data;
     return JSON.parse(data);

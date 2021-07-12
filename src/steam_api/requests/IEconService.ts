@@ -104,7 +104,7 @@ export class GetTradeOffer extends IEconServiceRequest {
     };
   }
 
-  responseStructure?: {
+  declare responseStructure?: {
     response?: {
       offer?: Offer;
       /** only if get_descriptions is true. unreliable */
@@ -157,7 +157,7 @@ export class GetTradeOffers extends IEconServiceRequest {
     };
   }
 
-  responseStructure?: {
+  declare responseStructure?: {
     response?: {
       trade_offers_sent?: Array<Offer>;
       trade_offers_received?: Array<Offer>;
@@ -239,7 +239,7 @@ export class GetTradeHistory extends IEconServiceRequest {
 /**
  * Returns the estimated hold duration and end date that a trade with a user would have
  * @example
- * response: 
+ * response:
  * {"response":{"my_escrow":{"escrow_end_duration_seconds":0},"their_escrow":{"escrow_end_duration_seconds":0},"both_escrow":{"escrow_end_duration_seconds":0}}}
  */
 export class GetTradeHoldDurations extends IEconServiceRequest {
@@ -311,7 +311,7 @@ export class GetTradeStatus extends IEconServiceRequest {
     };
   }
 
-  responseStructure?: {
+  declare responseStructure?: {
     response?: {
       trades?: Array<TradeDetails>;
     };

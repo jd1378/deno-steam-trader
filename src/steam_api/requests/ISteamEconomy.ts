@@ -31,7 +31,7 @@ export class GetAssetClassInfo extends ISteamEconomyRequest {
 
   skipFix = false;
 
-  responseStructure?: Record<
+  declare responseStructure?: Record<
     string,
     Omit<SteamEconItem, "id" | "assetid" | "amount">
   >;
